@@ -2116,7 +2116,9 @@ $max_processing_time = $order->restaurant?explode('-', $order->restaurant['deliv
 @endsection
 
 @push('script_2')
-    <script src="https://maps.googleapis.com/maps/api/js?key={{ Helpers::get_business_data('map_api_key') }}&libraries=places&callback=initMap&v=3.45.8"></script>
+    {{-- // OLD GOOGLE MAPS IMPLEMENTATION (commented out, kept for reference) --}}
+    {{-- <script src="https://maps.googleapis.com/maps/api/js?key={{ Helpers::get_business_data('map_api_key') }}&libraries=places&callback=initMap&v=3.45.8"></script> --}}
+    @include('partials.map-script', ['libraries' => 'places', 'callback' => 'initMap'])
     <script src="{{ dynamicAsset('public/assets/admin/js/spartan-multi-image-picker.js') }}"></script>
     <script type="text/javascript" src="{{dynamicAsset('public/assets/admin/js/moment.min.js')}}"></script>
     <script type="text/javascript" src="{{dynamicAsset('public/assets/admin/js/daterangepicker.min.js')}}"></script>
