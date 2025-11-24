@@ -20,6 +20,7 @@ use App\Http\Controllers\NewsletterController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\PasargadPaymentController;
 use App\Http\Controllers\PaypalPaymentController;
+use App\Http\Controllers\PaymentSandboxController;
 use App\Http\Controllers\SamanPaymentController;
 use App\Http\Controllers\StripePaymentController;
 use App\Http\Controllers\SslCommerzPaymentController;
@@ -234,6 +235,12 @@ if (!$is_published) {
             Route::match(['get', 'post'], 'callback', [PasargadPaymentController::class, 'callback'])
                 ->name('callback')
                 ->withoutMiddleware([\App\Http\Middleware\VerifyCsrfToken::class]);
+        });
+
+        // Sandbox simulator for Iranian gateways
+        Route::group(['prefix' => 'sandbox', 'as' => 'payment.sandbox.'], function () {
+            Route::get('{gateway}/{payment_request}', [PaymentSandboxController::class, 'prompt'])->name('prompt');
+            Route::get('{gateway}/{payment_request}/result/{result}', [PaymentSandboxController::class, 'result'])->name('result');
         });
     });
 }

@@ -1067,6 +1067,7 @@ class BusinessSettingsController extends Controller
                 'terminal_id' => 'required_if:status,1',
                 'payment_url' => 'nullable',
                 'callback_url' => 'nullable',
+                'sandbox' => 'required|in:1,0',
             ];
         } elseif ($request['gateway'] == 'pasargad') {
             $additional_data = [
@@ -1077,6 +1078,7 @@ class BusinessSettingsController extends Controller
                 'cert_path' => 'nullable',
                 'currency_multiplier' => 'nullable',
                 'callback_url' => 'nullable',
+                'sandbox' => 'required|in:1,0',
             ];
         }
 

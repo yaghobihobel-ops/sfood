@@ -31,6 +31,13 @@ class SamanGateway implements PaymentGatewayInterface
         $config = config('payment_gateways.saman', []);
         $callbackUrl = $config['callback_url'] ?? url('payment/saman/callback');
 
+        if (!empty($config['sandbox'])) {
+            return redirect()->route('payment.sandbox.prompt', [
+                'gateway' => 'saman',
+                'payment_request' => $paymentRequest->id,
+            ]);
+        }
+
         // TODO: Replace this placeholder token generation with the official Saman token API call.
         // OLD IMPLEMENTATION (kept for reference, replaced by new Saman/Pasargad abstraction)
         // Direct cURL requests to SEP would be placed here once credentials and endpoints are finalized.
@@ -69,6 +76,20 @@ class SamanGateway implements PaymentGatewayInterface
      */
     public function verify(Request $request, PaymentRequest $paymentRequest): array
     {
+        $config = config('payment_gateways.saman', []);
+
+        if (!empty($config['sandbox'])) {
+            $sandboxResult = $request->input('sandbox_result', 'success');
+            $transactionId = 'SANDBOX-SAMAN-' . $paymentRequest->id;
+
+            return [
+                'success' => $sandboxResult === 'success',
+                'message' => $sandboxResult === 'success' ? null : 'Sandbox failure simulated',
+                'transaction_id' => $transactionId,
+                'raw_response' => $request->all(),
+            ];
+        }
+
         $state = $request->input('State');
         $referenceNumber = $request->input('RefNum');
 
