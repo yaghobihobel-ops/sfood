@@ -18,11 +18,11 @@
 @endphp
 
 @if(($config['driver'] ?? 'iran') === 'iran')
-    {{-- Leaflet core CSS/JS for local map rendering --}}
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-WWcD2Cs3Xd8quBeG7HFxPzvlaFGVDTgkHwC7vCmKu64=" crossorigin="" />
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css" integrity="sha512-gXGsQuksaAJ+lZeI7IuAvV38DSHLVQQDBlnJrped1IovnHgwlHGawEq+y3OC/YLXTr4Wr9PXgC7cmkGexiLR3A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-QVft3LRNpPjPVhRHETpP23RrjO6D9s46n2f3LE3gdFk=" crossorigin=""></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js" integrity="sha512-CGvAZ0pHoN9vv5AoG4cglHIRMYN0dgZPCx3JzUu6m4Z0Y8CS6fwtZJzN2O0oSbYDrYom5dfdrEy7i/Dr7guPPA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    {{-- Leaflet core CSS/JS for local map rendering (integrity removed to avoid blocking) --}}
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
 
     {{-- Lightweight map helper bridging Blade maps to Leaflet --}}
     <script>
@@ -47,6 +47,31 @@
              */
             addMarker(map, lat, lng, options = {}) {
                 return L.marker([lat, lng], options).addTo(map);
+            },
+            /**
+             * Create a polygon from coordinate pairs and optionally fit bounds.
+             */
+            addPolygon(map, coords = [], options = {}, fit = true) {
+                if (!coords.length) {
+                    return null;
+                }
+                const latLngs = coords.map((point) => [point.lat || point.latitude, point.lng || point.longitude]);
+                const polygon = L.polygon(latLngs, options).addTo(map);
+                if (fit) {
+                    map.fitBounds(polygon.getBounds());
+                }
+                return polygon;
+            },
+            /**
+             * Fit map to given coordinate bounds helper.
+             */
+            fitToCoordinates(map, coords = []) {
+                if (!coords.length) {
+                    return;
+                }
+                const latLngs = coords.map((point) => [point.lat || point.latitude, point.lng || point.longitude]);
+                const bounds = L.latLngBounds(latLngs);
+                map.fitBounds(bounds);
             },
             /**
              * Enable polygon drawing and return feature group + draw control to mirror zone editing.
