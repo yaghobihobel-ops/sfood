@@ -296,7 +296,9 @@
 
 @push('script_2')
     <script
-        src="https://maps.googleapis.com/maps/api/js?key={{ Helpers::get_business_settings('map_api_key') }}&libraries=places&callback=initMap&v=3.49">
+        {{-- // OLD GOOGLE MAPS IMPLEMENTATION (commented out, kept for reference) --}}
+        {{-- src="https://maps.googleapis.com/maps/api/js?key={{ Helpers::get_business_settings('map_api_key') }}&libraries=places&callback=initMap&v=3.49"> --}}
+        @include('partials.map-script', ['libraries' => 'places', 'callback' => 'initMap'])
     </script>
     <script src="{{dynamicAsset('public/assets/admin/js/view-pages/vendor/pos.js')}}"></script>
     <script src="{{dynamicAsset('public/assets/admin/js/view-pages/common-pos-js.js')}}"></script>
