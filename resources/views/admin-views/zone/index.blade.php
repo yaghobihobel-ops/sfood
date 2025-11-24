@@ -479,10 +479,14 @@
                             fillColor: '#FF0000',
                             fillOpacity: 0.1
                         }, false);
-                        polygons.push(polygon);
+                        if (polygon) {
+                            polygons.push(polygon);
+                        }
                     }
                     if (polygons.length) {
-                        const allPoints = polygons.flatMap((poly) => poly.getLatLngs()[0]);
+                        const allPoints = polygons
+                            .map((poly) => poly.getLatLngs()[0] || [])
+                            .flat();
                         AppMap.fitToCoordinates(map, allPoints.map((p) => ({ lat: p.lat, lng: p.lng })));
                     }
                 },
