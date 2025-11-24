@@ -18,7 +18,9 @@ use App\Http\Controllers\HomeController;
 use App\Http\Controllers\LoginController;
 use App\Http\Controllers\NewsletterController;
 use App\Http\Controllers\PaymentController;
+use App\Http\Controllers\PasargadPaymentController;
 use App\Http\Controllers\PaypalPaymentController;
+use App\Http\Controllers\SamanPaymentController;
 use App\Http\Controllers\StripePaymentController;
 use App\Http\Controllers\SslCommerzPaymentController;
 use App\Http\Controllers\VendorController;
@@ -214,6 +216,22 @@ if (!$is_published) {
             Route::any('pay', [PaytabsController::class, 'payment'])->name('pay');
             Route::any('callback', [PaytabsController::class, 'callback'])->name('callback')->withoutMiddleware([\App\Http\Middleware\VerifyCsrfToken::class]);
             Route::any('response', [PaytabsController::class, 'response'])->name('response')->withoutMiddleware([\App\Http\Middleware\VerifyCsrfToken::class]);
+        });
+
+        // SAMAN (SEP)
+        Route::group(['prefix' => 'saman', 'as' => 'saman.'], function () {
+            Route::get('pay', [SamanPaymentController::class, 'pay'])->name('pay');
+            Route::match(['get', 'post'], 'callback', [SamanPaymentController::class, 'callback'])
+                ->name('callback')
+                ->withoutMiddleware([\App\Http\Middleware\VerifyCsrfToken::class]);
+        });
+
+        // PASARGAD (PEP)
+        Route::group(['prefix' => 'pasargad', 'as' => 'pasargad.'], function () {
+            Route::get('pay', [PasargadPaymentController::class, 'pay'])->name('pay');
+            Route::match(['get', 'post'], 'callback', [PasargadPaymentController::class, 'callback'])
+                ->name('callback')
+                ->withoutMiddleware([\App\Http\Middleware\VerifyCsrfToken::class]);
         });
     });
 }
