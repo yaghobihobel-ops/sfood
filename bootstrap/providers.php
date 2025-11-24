@@ -5,6 +5,8 @@ return [
     App\Providers\ConfigServiceProvider::class,
     App\Providers\PaymentGatewayServiceProvider::class,
     App\Providers\FirebaseServiceProvider::class,
+    App\Providers\PaymentGatewayServiceProvider::class,
     App\Providers\EventServiceProvider::class,
     App\Providers\RouteServiceProvider::class,
+    App\Providers\MapServiceProvider::class,
 ];
