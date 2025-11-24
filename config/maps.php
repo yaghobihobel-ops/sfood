@@ -1,7 +1,7 @@
 <?php
 
 return [
-    'driver' => env('MAP_DRIVER', 'google'),
+    'driver' => env('MAP_DRIVER', 'iran'),
 
     'google' => [
         'api_key_server' => env('MAP_API_KEY_SERVER'),
