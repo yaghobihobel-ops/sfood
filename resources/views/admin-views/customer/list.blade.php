@@ -1086,10 +1086,14 @@
 @endsection
 
 @push('script_2')
+    {{-- // OLD GOOGLE MAPS IMPLEMENTATION (commented out, kept for reference) --}}
+    {{--
     <script
         src="https://maps.googleapis.com/maps/api/js?key={{ \App\Models\BusinessSetting::where('key', 'map_api_key')->first()->value }}&libraries=places&callback=initMap"
         async defer>
     </script>
+    --}}
+    @include('partials.map-script', ['libraries' => 'places', 'callback' => 'initMap'])
     <script>
         function initMap() {
             // Default location (Dhaka as example)

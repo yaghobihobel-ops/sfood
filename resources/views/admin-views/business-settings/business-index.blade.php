@@ -1626,9 +1626,13 @@
 @endsection
 
 @push('script_2')
+    {{-- // OLD GOOGLE MAPS IMPLEMENTATION (commented out, kept for reference) --}}
+    {{--
     <script
         src="https://maps.googleapis.com/maps/api/js?key={{ \App\Models\BusinessSetting::where('key', 'map_api_key')->first()->value }}&libraries=places&v=3.45.8">
     </script>
+    --}}
+    @include('partials.map-script', ['libraries' => 'places'])
     <script>
         "use strict";
 
