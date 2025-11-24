@@ -221,6 +221,7 @@ if (!$is_published) {
         // SAMAN (SEP)
         Route::group(['prefix' => 'saman', 'as' => 'saman.'], function () {
             Route::get('pay', [SamanPaymentController::class, 'pay'])->name('pay');
+
             Route::match(['get', 'post'], 'callback', [SamanPaymentController::class, 'callback'])
                 ->name('callback')
                 ->withoutMiddleware([\App\Http\Middleware\VerifyCsrfToken::class]);
@@ -229,6 +230,7 @@ if (!$is_published) {
         // PASARGAD (PEP)
         Route::group(['prefix' => 'pasargad', 'as' => 'pasargad.'], function () {
             Route::get('pay', [PasargadPaymentController::class, 'pay'])->name('pay');
+
             Route::match(['get', 'post'], 'callback', [PasargadPaymentController::class, 'callback'])
                 ->name('callback')
                 ->withoutMiddleware([\App\Http\Middleware\VerifyCsrfToken::class]);

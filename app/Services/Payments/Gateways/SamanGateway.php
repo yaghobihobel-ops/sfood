@@ -6,128 +6,89 @@ use App\Models\PaymentRequest;
 use App\Services\Payments\PaymentGatewayInterface;
 use Illuminate\Contracts\Routing\ResponseFactory;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Http\Response;
-use InvalidArgumentException;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 
 /**
  * SamanGateway
  *
- * Skeleton implementation for SEP (Saman Bank) gateway.
- * Bank-specific SOAP/XML calls should be added where TODO notes exist
- * according to the official SEP documentation.
+ * Handles redirection and verification for Saman (SEP) bank gateway.
+ * The low-level HTTP calls are left as TODOs with guidance for integrating
+ * official SEP APIs without breaking existing payment flows.
  */
 class SamanGateway implements PaymentGatewayInterface
 {
     /**
-     * Redirect user to the gateway's hosted payment page.
+     * Initiate the payment by redirecting the user to Saman's hosted page.
      *
-     * @param PaymentRequest $paymentRequest
-     * @return RedirectResponse|ResponseFactory|Response
+     * @param \App\Models\PaymentRequest $paymentRequest
+     * @return \Illuminate\Http\RedirectResponse|\Illuminate\Contracts\Routing\ResponseFactory|\Illuminate\Http\Response
      */
-    public function pay(PaymentRequest $paymentRequest)
+    public function pay(PaymentRequest $paymentRequest): RedirectResponse|ResponseFactory|Response
     {
         $config = config('payment_gateways.saman', []);
-        $this->assertConfigured($config);
+        $callbackUrl = $config['callback_url'] ?? url('payment/saman/callback');
 
-        $callback = $this->callbackUrl($paymentRequest, $config);
-        $endpoint = $this->purchaseEndpoint($config);
+        // TODO: Replace this placeholder token generation with the official Saman token API call.
+        // OLD IMPLEMENTATION (kept for reference, replaced by new Saman/Pasargad abstraction)
+        // Direct cURL requests to SEP would be placed here once credentials and endpoints are finalized.
+        $token = Str::uuid()->toString();
+
+        $redirectUrl = $config['payment_url'] ?? 'https://sep.shaparak.ir/payment.aspx';
 
         $payload = [
-            // TODO: Replace with SEP-specific token generation if required.
             'Amount' => $paymentRequest->payment_amount,
-            'MID' => $config['merchant_id'] ?? null,
-            'TerminalId' => $config['terminal_id'] ?? null,
+            'MerchantID' => $config['merchant_id'] ?? null,
             'ResNum' => $paymentRequest->id,
-            'RedirectURL' => $callback,
+            'RedirectURL' => $callbackUrl,
+            'Token' => $token,
         ];
 
-        return response($this->buildAutoSubmitForm($endpoint, $payload));
+        Log::info('Saman gateway initialized', [
+            'payment_request' => $paymentRequest->id,
+            'payload' => $payload,
+        ]);
+
+        // Most Iranian gateways require an auto-submitting form POST.
+        $form = view('components.payment-gateway-redirect', [
+            'action' => $redirectUrl,
+            'fields' => $payload,
+        ]);
+
+        return response($form);
     }
 
     /**
-     * Verify callback response from Saman gateway.
+     * Verify the callback from Saman and return a normalized result array.
      *
      * @param \Illuminate\Http\Request $request
-     * @param PaymentRequest $paymentRequest
+     * @param \App\Models\PaymentRequest $paymentRequest
      * @return array{success: bool, message: string|null, transaction_id?: string|null, raw_response?: mixed}
      */
-    public function verify($request, PaymentRequest $paymentRequest): array
+    public function verify(Request $request, PaymentRequest $paymentRequest): array
     {
-        $responseState = $request->input('State', $request->input('state'));
-        $success = in_array($responseState, ['OK', 'ok', '0', 0], true);
-        $transactionId = $request->input('RefNum');
+        $state = $request->input('State');
+        $referenceNumber = $request->input('RefNum');
 
-        // TODO: Implement SEP verification/settlement request here based on official API.
+        // TODO: Implement server-to-server verification with SEP settlement API.
+        $isSuccessful = $state === 'OK' || $state === 'success';
+
+        $message = $isSuccessful ? null : ($request->input('Message') ?? 'Payment verification failed');
+
+        Log::info('Saman gateway callback received', [
+            'payment_request' => $paymentRequest->id,
+            'state' => $state,
+            'ref_num' => $referenceNumber,
+            'raw' => $request->all(),
+        ]);
 
         return [
-            'success' => $success,
-            'message' => $success ? null : 'Verification failed or payment declined.',
-            'transaction_id' => $transactionId,
+            'success' => $isSuccessful,
+            'message' => $message,
+            'transaction_id' => $referenceNumber,
             'raw_response' => $request->all(),
         ];
-    }
-
-    /**
-     * @param array $config
-     * @return void
-     */
-    private function assertConfigured(array $config): void
-    {
-        if (empty($config['merchant_id']) || empty($config['terminal_id'])) {
-            throw new InvalidArgumentException('Saman gateway is not configured properly.');
-        }
-    }
-
-    /**
-     * @param PaymentRequest $paymentRequest
-     * @param array $config
-     * @return string
-     */
-    private function callbackUrl(PaymentRequest $paymentRequest, array $config): string
-    {
-        return $config['callback_url'] ?? route('saman.callback', ['payment_id' => $paymentRequest->id]);
-    }
-
-    /**
-     * @param array $config
-     * @return string
-     */
-    private function purchaseEndpoint(array $config): string
-    {
-        return ($config['mode'] ?? 'test') === 'live'
-            ? 'https://sep.shaparak.ir/Payment.aspx'
-            : 'https://sandbox.sep.shaparak.ir/Payment.aspx';
-    }
-
-    /**
-     * Create a minimal auto-submit HTML form to redirect to Saman gateway.
-     *
-     * @param string $action
-     * @param array $fields
-     * @return string
-     */
-    private function buildAutoSubmitForm(string $action, array $fields): string
-    {
-        $formInputs = collect($fields)
-            ->filter()
-            ->map(fn ($value, $name) => '<input type="hidden" name="' . e($name) . '" value="' . e($value) . '">')
-            ->implode('');
-
-        return <<<HTML
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Saman Redirect</title>
-</head>
-<body onload="document.forms[0].submit()">
-<p>Redirecting to Saman gateway...</p>
-<form method="post" action="{$action}">
-    {$formInputs}
-    <noscript><button type="submit">Continue</button></noscript>
-</form>
-</body>
-</html>
-HTML;
     }
 }

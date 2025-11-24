@@ -168,31 +168,27 @@ class ConfigServiceProvider extends ServiceProvider
                 Config::set('config_paytm', $config);
             }
 
-            $saman_raw = data_get($data, 'saman');
-            $saman_config = is_string($saman_raw) ? json_decode($saman_raw, true) : $saman_raw;
-            if ($saman_config) {
-                $config = [
-                    'merchant_id' => data_get($saman_config, 'merchant_id', null),
-                    'terminal_id' => data_get($saman_config, 'terminal_id', null),
+            // Iranian gateways (Saman SEP / Pasargad PEP)
+            if (data_get($data,'saman',null)) {
+                Config::set('payment_gateways.saman', [
+                    'merchant_id' => data_get($data, 'saman.merchant_id', null),
+                    'terminal_id' => data_get($data, 'saman.terminal_id', null),
                     'callback_url' => url('payment/saman/callback'),
-                    'mode' => env('SAMAN_MODE', data_get($saman_config, 'mode', 'test')),
-                ];
-
-                Config::set('payment_gateways.saman', $config);
+                    'payment_url' => data_get($data, 'saman.payment_url', 'https://sep.shaparak.ir/payment.aspx'),
+                    'mode' => env('SAMAN_MODE', data_get($data, 'saman.mode', 'test')),
+                ]);
             }
 
-            $pasargad_raw = data_get($data, 'pasargad');
-            $pasargad_config = is_string($pasargad_raw) ? json_decode($pasargad_raw, true) : $pasargad_raw;
-            if ($pasargad_config) {
-                $config = [
-                    'merchant_code' => data_get($pasargad_config, 'merchant_code', null),
-                    'terminal_code' => data_get($pasargad_config, 'terminal_code', null),
+            if (data_get($data,'pasargad',null)) {
+                Config::set('payment_gateways.pasargad', [
+                    'merchant_code' => data_get($data, 'pasargad.merchant_code', null),
+                    'terminal_code' => data_get($data, 'pasargad.terminal_code', null),
                     'callback_url' => url('payment/pasargad/callback'),
+                    'payment_url' => data_get($data, 'pasargad.payment_url', 'https://pep.shaparak.ir/payment.aspx'),
                     'cert_path' => storage_path('app/pasargad/cert.xml'),
-                    'mode' => env('PASARGAD_MODE', data_get($pasargad_config, 'mode', 'test')),
-                ];
-
-                Config::set('payment_gateways.pasargad', $config);
+                    'mode' => env('PASARGAD_MODE', data_get($data, 'pasargad.mode', 'test')),
+                    'currency_multiplier' => data_get($data, 'pasargad.currency_multiplier', 'toman_to_rial'),
+                ]);
             }
             $odv = BusinessSetting::where(['key' => 'order_delivery_verification'])->first();
             if ($odv) {

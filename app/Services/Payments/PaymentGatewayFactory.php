@@ -16,8 +16,10 @@ use InvalidArgumentException;
 class PaymentGatewayFactory
 {
     /**
-     * @param PaymentRequest $paymentRequest
-     * @return PaymentGatewayInterface
+     * Resolve the gateway implementation for the given payment request.
+     *
+     * @param \App\Models\PaymentRequest $paymentRequest
+     * @return \App\Services\Payments\PaymentGatewayInterface
      */
     public function make(PaymentRequest $paymentRequest): PaymentGatewayInterface
     {
@@ -26,6 +28,7 @@ class PaymentGatewayFactory
         return match ($method) {
             'saman' => app(SamanGateway::class),
             'pasargad' => app(PasargadGateway::class),
+            // Additional gateways can be wired here incrementally without affecting existing flows.
             default => throw new InvalidArgumentException("Unsupported payment method: {$method}"),
         };
     }

@@ -5,28 +5,27 @@ namespace App\Providers;
 use App\Services\Payments\PaymentGatewayFactory;
 use Illuminate\Support\ServiceProvider;
 
-/**
- * PaymentGatewayServiceProvider
- *
- * Registers the payment gateway factory abstraction in the container.
- */
 class PaymentGatewayServiceProvider extends ServiceProvider
 {
     /**
      * Register services.
+     *
+     * @return void
      */
-    public function register()
+    public function register(): void
     {
-        $this->app->singleton(PaymentGatewayFactory::class, function () {
+        $this->app->singleton(PaymentGatewayFactory::class, function ($app) {
             return new PaymentGatewayFactory();
         });
     }
 
     /**
      * Bootstrap services.
+     *
+     * @return void
      */
-    public function boot()
+    public function boot(): void
     {
-        //
+        // No boot logic required for now. Factory is resolved via the container.
     }
 }
