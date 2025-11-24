@@ -855,9 +855,9 @@
     <script src="{{ dynamicAsset('public/assets/admin') }}/js/file-preview/pdf-worker.min.js"></script>
 
     <script src="{{ dynamicAsset('public/assets/admin') }}/js/tags-input.min.js"></script>
-    <script
-        src="https://maps.googleapis.com/maps/api/js?key={{ \App\CentralLogics\Helpers::get_business_settings('map_api_key') }}&loading=async&libraries=drawing,places&v=3.58&language={{ str_replace('_', '-', app()->getLocale()) }}&callback=initMap">
-    </script>
+    {{-- Google Maps loader kept for reference; replaced by shared partial --}}
+    {{-- <script src="https://maps.googleapis.com/maps/api/js?key={{ \App\CentralLogics\Helpers::get_business_settings('map_api_key') }}&loading=async&libraries=drawing,places&v=3.58&language={{ str_replace('_', '-', app()->getLocale()) }}&callback=initMap"></script> --}}
+    @include('partials.map-script', ['libraries' => 'drawing,places'])
     <script>
         "use strict";
         document.querySelectorAll('input').forEach(function (input) {

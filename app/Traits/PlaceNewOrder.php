@@ -23,6 +23,7 @@ use Illuminate\Support\Facades\Session;
 use App\CentralLogics\CustomerLogic;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Cache;
+use App\Services\Map\MapService;
 
 trait PlaceNewOrder
 {
@@ -1083,24 +1084,39 @@ trait PlaceNewOrder
         $cacheKey = 'distance_data_' . $restaurant_data['id'] . '_' . $address->id;
         return Cache::remember($cacheKey, now()->addMinutes(30), function () use ($restaurant_data, $address) {
             try {
-                $map_api_key = Helpers::get_business_settings('map_api_key_server');
+                /** @var MapService $mapService */
+                $mapService = app(MapService::class);
 
-                $response = Http::get('https://maps.googleapis.com/maps/api/distancematrix/json', [
-                    'origins' => $restaurant_data['latitude'] . ',' . $restaurant_data['longitude'],
-                    'destinations' => $address->latitude . ',' . $address->longitude,
-                    'key' => $map_api_key,
-                    'mode' => 'walking'
-                ]);
+                // OLD GOOGLE MAPS IMPLEMENTATION (commented out, moved under MapService)
+                // $map_api_key = Helpers::get_business_settings('map_api_key_server');
+                // $response = Http::get('https://maps.googleapis.com/maps/api/distancematrix/json', [
+                //     'origins' => $restaurant_data['latitude'] . ',' . $restaurant_data['longitude'],
+                //     'destinations' => $address->latitude . ',' . $address->longitude,
+                //     'key' => $map_api_key,
+                //     'mode' => 'walking'
+                // ]);
+                // $data = $response->json();
+                // if (
+                //     isset($data['rows'][0]['elements'][0]['status']) &&
+                //     $data['rows'][0]['elements'][0]['status'] === 'OK'
+                // ) {
+                //     $meters = $data['rows'][0]['elements'][0]['distance']['value'] ?? 0;
+                //     return round($meters / 1000, 4);
+                // }
+                // throw new \Exception('Invalid distance matrix response');
 
-                $data = $response->json();
-                if (
-                    isset($data['rows'][0]['elements'][0]['status']) &&
-                    $data['rows'][0]['elements'][0]['status'] === 'OK'
-                ) {
-                    $meters = $data['rows'][0]['elements'][0]['distance']['value'] ?? 0;
-                    return round($meters / 1000, 4);
+                $distanceData = $mapService->distance(
+                    (float) $restaurant_data['latitude'],
+                    (float) $restaurant_data['longitude'],
+                    (float) $address->latitude,
+                    (float) $address->longitude
+                );
+
+                if (!empty($distanceData['distanceMeters'])) {
+                    return round($distanceData['distanceMeters'] / 1000, 4);
                 }
-                throw new \Exception('Invalid distance matrix response');
+
+                throw new \RuntimeException('Invalid distance response from MapService');
             } catch (\Throwable $th) {
                 $origin = [$restaurant_data['latitude'], $restaurant_data['longitude']];
                 $destination = [$address->latitude, $address->longitude];

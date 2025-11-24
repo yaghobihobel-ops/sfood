@@ -334,9 +334,9 @@
 @endsection
 
 @push('script_2')
-    <script
-        src="https://maps.googleapis.com/maps/api/js?key={{ Helpers::get_business_settings('map_api_key') }}&libraries=places&callback=initMap&v=3.49">
-    </script>
+    {{-- Google Maps loader kept for reference; replaced by shared partial --}}
+    {{-- <script src="https://maps.googleapis.com/maps/api/js?key={{ Helpers::get_business_settings('map_api_key') }}&libraries=places&callback=initMap&v=3.49"></script> --}}
+    @include('partials.map-script', ['libraries' => 'places'])
     <script src="{{dynamicAsset('public/assets/admin/js/view-pages/pos.js')}}"></script>
     <script src="{{dynamicAsset('public/assets/admin/js/view-pages/common-pos-js.js')}}"></script>
     <script>

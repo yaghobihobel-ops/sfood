@@ -1673,9 +1673,9 @@
 
 @endsection
 @push('script_2')
-    <script
-        src="https://maps.googleapis.com/maps/api/js?key={{ Helpers::get_business_data('map_api_key') }}&libraries=places&callback=initMap&v=3.45.8">
-    </script>
+    {{-- Google Maps loader kept for reference; replaced by shared partial --}}
+    {{-- <script src="https://maps.googleapis.com/maps/api/js?key={{ Helpers::get_business_data('map_api_key') }}&libraries=places&callback=initMap&v=3.45.8"></script> --}}
+    @include('partials.map-script', ['libraries' => 'places'])
     <script src="{{ dynamicAsset('public/assets/admin/js/spartan-multi-image-picker.js') }}"></script>
     <script src="{{ dynamicAsset('public/assets/admin/js/offcanvas.js') }}"></script>
     <script type="text/javascript" src="{{ dynamicAsset('public/assets/admin/js/moment.min.js') }}"></script>

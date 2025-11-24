@@ -5,5 +5,6 @@ return [
     App\Providers\ConfigServiceProvider::class,
     App\Providers\FirebaseServiceProvider::class,
     App\Providers\EventServiceProvider::class,
+    App\Providers\MapServiceProvider::class,
     App\Providers\RouteServiceProvider::class,
 ];

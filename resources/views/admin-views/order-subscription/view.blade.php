@@ -536,9 +536,9 @@
 <!-- End Modal -->
 @endsection
 @push('script_2')
-    <script
-            src="https://maps.googleapis.com/maps/api/js?key={{ \App\Models\BusinessSetting::where('key', 'map_api_key')->first()->value }}&libraries=places&callback=initMap&v=3.45.8">
-    </script>
+    {{-- Google Maps loader kept for reference; replaced by shared partial --}}
+    {{-- <script src="https://maps.googleapis.com/maps/api/js?key={{ \App\Models\BusinessSetting::where('key', 'map_api_key')->first()->value }}&libraries=places&callback=initMap&v=3.45.8"></script> --}}
+    @include('partials.map-script', ['libraries' => 'places'])
     <script>
         "use strict";
 

@@ -1086,10 +1086,9 @@
 @endsection
 
 @push('script_2')
-    <script
-        src="https://maps.googleapis.com/maps/api/js?key={{ \App\Models\BusinessSetting::where('key', 'map_api_key')->first()->value }}&libraries=places&callback=initMap"
-        async defer>
-    </script>
+    {{-- Google Maps loader kept for reference; replaced by shared partial --}}
+    {{-- <script src="https://maps.googleapis.com/maps/api/js?key={{ \App\Models\BusinessSetting::where('key', 'map_api_key')->first()->value }}&libraries=places&callback=initMap" async defer></script> --}}
+    @include('partials.map-script', ['libraries' => 'places'])
     <script>
         function initMap() {
             // Default location (Dhaka as example)

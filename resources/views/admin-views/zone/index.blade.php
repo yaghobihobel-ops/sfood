@@ -343,7 +343,9 @@
 @endsection
 
 @push('script_2')
-<script src="https://maps.googleapis.com/maps/api/js?key={{ \App\Models\BusinessSetting::where('key', 'map_api_key')->first()->value }}&libraries=drawing,places&v=3.45.8"></script>
+{{-- Google Maps loader kept for reference; replaced by shared partial --}}
+{{-- <script src="https://maps.googleapis.com/maps/api/js?key={{ \App\Models\BusinessSetting::where('key', 'map_api_key')->first()->value }}&libraries=drawing,places&v=3.45.8"></script> --}}
+@include('partials.map-script', ['libraries' => 'drawing,places'])
 <script>
     "use strict";
 
