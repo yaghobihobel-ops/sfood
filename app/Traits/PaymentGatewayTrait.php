@@ -206,6 +206,10 @@ trait PaymentGatewayTrait
             "pvit" => [
                 "NGN" => "Nigerian Naira"
             ],
+            "saman" => [
+                "IRR" => "Iranian Rial",
+                "IRT" => "Iranian Toman",
+            ],
             "razor_pay" => [
                 "INR" => "Indian Rupee",
                 "USD" => "United States Dollar",
@@ -284,6 +288,10 @@ trait PaymentGatewayTrait
                 "QAR" => "Qatari Riyal",
                 "BHD" => "Bahraini Dinar",
                 "KWD" => "Kuwaiti Dinar"
+            ],
+            "pasargad" => [
+                "IRR" => "Iranian Rial",
+                "IRT" => "Iranian Toman",
             ],
             "viva_wallet" => [
                 "EUR" => "Euro",

@@ -5,115 +5,101 @@ namespace App\Http\Controllers;
 use App\Models\PaymentRequest;
 use App\Services\Payments\PaymentGatewayFactory;
 use App\Traits\Processor;
+use Illuminate\Contracts\Foundation\Application as FoundationApplication;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Routing\Redirector;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
-use InvalidArgumentException;
+use Throwable;
 
-/**
- * SamanPaymentController
- *
- * Handles redirect and callback flows for the Saman (SEP) payment gateway
- * using the shared PaymentGatewayInterface abstraction.
- */
 class SamanPaymentController extends Controller
 {
     use Processor;
 
-    /**
-     * @var PaymentRequest
-     */
-    private PaymentRequest $payment;
-
-    /**
-     * @var PaymentGatewayFactory
-     */
-    private PaymentGatewayFactory $gatewayFactory;
-
-    public function __construct(PaymentRequest $payment, PaymentGatewayFactory $gatewayFactory)
+    public function __construct(private PaymentRequest $paymentRequest, private PaymentGatewayFactory $gatewayFactory)
     {
-        $this->payment = $payment;
-        $this->gatewayFactory = $gatewayFactory;
     }
 
     /**
-     * Redirect to Saman gateway using the shared abstraction layer.
+     * Redirect the user to Saman (SEP) payment page.
      */
-    public function pay(Request $request)
+    public function pay(Request $request): RedirectResponse|JsonResponse|FoundationApplication|Redirector
     {
         $validator = Validator::make($request->all(), [
-            'payment_id' => 'required|uuid',
+            'payment_id' => 'required|string',
         ]);
 
         if ($validator->fails()) {
             return response()->json($this->response_formatter(GATEWAYS_DEFAULT_400, null, $this->error_processor($validator)), 400);
         }
 
-        $data = $this->payment::where(['id' => $request['payment_id']])->where(['is_paid' => 0])->first();
-        if (!isset($data)) {
+        $payment = $this->paymentRequest::where(['id' => $request['payment_id']])->where(['is_paid' => 0])->first();
+        if (!$payment) {
             return response()->json($this->response_formatter(GATEWAYS_DEFAULT_204), 200);
         }
 
         try {
-            $gateway = $this->gatewayFactory->make($data);
-            return $gateway->pay($data);
-        } catch (InvalidArgumentException $exception) {
-            Log::warning('Saman gateway is not available', ['message' => $exception->getMessage()]);
-        } catch (\Throwable $exception) {
-            Log::error('Saman payment initiation failed', ['message' => $exception->getMessage()]);
-        }
+            $gateway = $this->gatewayFactory->make($payment);
+            return $gateway->pay($payment);
+        } catch (Throwable $exception) {
+            Log::warning('Saman pay failed', [
+                'payment_id' => $payment->id,
+                'error' => $exception->getMessage(),
+            ]);
 
-        if (isset($data) && function_exists($data->failure_hook)) {
-            call_user_func($data->failure_hook, $data);
+            return $this->payment_response($payment, 'fail');
         }
-
-        return $this->payment_response($data, 'fail');
     }
 
     /**
-     * Handle Saman callback and verify payment status.
+     * Handle Saman callback and mark the payment accordingly.
      */
-    public function callback(Request $request): JsonResponse|\Illuminate\Contracts\Foundation\Application|\Illuminate\Routing\Redirector|\Illuminate\Http\RedirectResponse
+    public function callback(Request $request): RedirectResponse|JsonResponse|FoundationApplication|Redirector
     {
-        $paymentId = $request->get('payment_id', $request->get('ResNum'));
-        $data = $this->payment::where(['id' => $paymentId])->first();
+        $paymentId = $request->input('payment_id', $request->input('ResNum'));
+        $payment = $this->paymentRequest::where(['id' => $paymentId])->first();
 
-        if (!$data) {
-            return response()->json($this->response_formatter(GATEWAYS_DEFAULT_404), 404);
+        if (!$payment) {
+            return redirect()->route('payment-fail');
         }
 
         try {
-            $gateway = $this->gatewayFactory->make($data);
-            $result = $gateway->verify($request, $data);
-        } catch (InvalidArgumentException $exception) {
-            Log::warning('Saman callback rejected', ['message' => $exception->getMessage()]);
-            $result = ['success' => false, 'message' => $exception->getMessage()];
-        } catch (\Throwable $exception) {
-            Log::error('Saman verification failed', ['message' => $exception->getMessage()]);
-            $result = ['success' => false, 'message' => $exception->getMessage()];
+            $gateway = $this->gatewayFactory->make($payment);
+            $result = $gateway->verify($request, $payment);
+        } catch (Throwable $exception) {
+            Log::warning('Saman callback failed', [
+                'payment_id' => $payment->id,
+                'error' => $exception->getMessage(),
+            ]);
+
+            if (isset($payment) && function_exists($payment->failure_hook)) {
+                call_user_func($payment->failure_hook, $payment);
+            }
+
+            return $this->payment_response($payment, 'fail');
         }
 
         if ($result['success']) {
-            $this->payment::where(['id' => $data->id])->update([
-                'payment_method' => 'saman',
-                'is_paid' => 1,
-                'transaction_id' => $result['transaction_id'] ?? null,
-            ]);
+            $payment->transaction_id = $result['transaction_id'] ?? $payment->transaction_id;
+            $payment->is_paid = 1;
+            $payment->save();
 
-            $data = $this->payment::where(['id' => $data->id])->first();
-            if (isset($data) && function_exists($data->success_hook)) {
-                call_user_func($data->success_hook, $data);
+            if (isset($payment) && function_exists($payment->success_hook)) {
+                call_user_func($payment->success_hook, $payment);
             }
 
-            return $this->payment_response($data, 'success');
+            return $this->payment_response($payment, 'success');
         }
 
-        $paymentData = $this->payment::where(['id' => $data->id])->first();
-        if (isset($paymentData) && function_exists($paymentData->failure_hook)) {
-            call_user_func($paymentData->failure_hook, $paymentData);
+        $payment->transaction_id = $result['transaction_id'] ?? $payment->transaction_id;
+        $payment->save();
+
+        if (isset($payment) && function_exists($payment->failure_hook)) {
+            call_user_func($payment->failure_hook, $payment);
         }
 
-        return $this->payment_response($paymentData, 'fail');
+        return $this->payment_response($payment, 'fail');
     }
 }

@@ -3,6 +3,10 @@
 namespace App\Services\Payments;
 
 use App\Models\PaymentRequest;
+use Illuminate\Http\Request;
+use Illuminate\Contracts\Routing\ResponseFactory;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Response;
 
 /**
  * PaymentGatewayInterface
@@ -19,7 +23,7 @@ interface PaymentGatewayInterface
      * @param \App\Models\PaymentRequest $paymentRequest
      * @return \Illuminate\Http\RedirectResponse|\Illuminate\Contracts\Routing\ResponseFactory|\Illuminate\Http\Response
      */
-    public function pay(PaymentRequest $paymentRequest);
+    public function pay(PaymentRequest $paymentRequest): RedirectResponse|ResponseFactory|Response;
 
     /**
      * Handle callback/verify from the gateway.
@@ -31,5 +35,5 @@ interface PaymentGatewayInterface
      * @param \App\Models\PaymentRequest $paymentRequest
      * @return array{success: bool, message: string|null, transaction_id?: string|null, raw_response?: mixed}
      */
-    public function verify($request, PaymentRequest $paymentRequest): array;
+    public function verify(Request $request, PaymentRequest $paymentRequest): array;
 }

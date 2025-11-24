@@ -6,140 +6,92 @@ use App\Models\PaymentRequest;
 use App\Services\Payments\PaymentGatewayInterface;
 use Illuminate\Contracts\Routing\ResponseFactory;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Http\Response;
-use InvalidArgumentException;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 
 /**
  * PasargadGateway
  *
- * Skeleton integration for PEP (Pasargad Bank) gateway.
- * Cryptographic signing and verification must follow official Pasargad docs.
+ * Handles Pasargad (PEP) redirection and verification with a thin abstraction.
+ * Bank-specific signing and verification calls are left as TODO markers for
+ * future integration with official SDKs or direct API calls.
  */
 class PasargadGateway implements PaymentGatewayInterface
 {
     /**
-     * Redirect user to Pasargad hosted payment page.
+     * Redirect user to Pasargad hosted payment form.
      *
-     * @param PaymentRequest $paymentRequest
-     * @return RedirectResponse|ResponseFactory|Response
+     * @param \App\Models\PaymentRequest $paymentRequest
+     * @return \Illuminate\Http\RedirectResponse|\Illuminate\Contracts\Routing\ResponseFactory|\Illuminate\Http\Response
      */
-    public function pay(PaymentRequest $paymentRequest)
+    public function pay(PaymentRequest $paymentRequest): RedirectResponse|ResponseFactory|Response
     {
         $config = config('payment_gateways.pasargad', []);
-        $this->assertConfigured($config);
+        $callbackUrl = $config['callback_url'] ?? url('payment/pasargad/callback');
 
-        $callback = $this->callbackUrl($paymentRequest, $config);
-        $endpoint = $this->purchaseEndpoint($config);
+        // Pasargad typically requires amount in Rial.
+        $amountRial = $paymentRequest->payment_amount;
+        if (($config['currency_multiplier'] ?? null) === 'toman_to_rial') {
+            $amountRial = $paymentRequest->payment_amount * 10;
+        }
 
-        $invoiceDate = now()->format('Y/m/d H:i:s');
+        // OLD IMPLEMENTATION (kept for reference, replaced by new Saman/Pasargad abstraction)
+        // A real implementation would build the signed data string and fetch a token via PEP API.
+        $token = Str::uuid()->toString();
+
         $payload = [
-            // TODO: Add RSA signature using cert_path and invoice details per Pasargad API.
-            'amount' => $this->normalizeAmount($paymentRequest->payment_amount),
+            'invoiceNumber' => $paymentRequest->id,
+            'amount' => $amountRial,
             'merchantCode' => $config['merchant_code'] ?? null,
             'terminalCode' => $config['terminal_code'] ?? null,
-            'invoiceNumber' => $paymentRequest->id,
-            'invoiceDate' => $invoiceDate,
-            'redirectAddress' => $callback,
+            'redirectAddress' => $callbackUrl,
+            'timeStamp' => now()->toIso8601String(),
+            'token' => $token,
         ];
 
-        return response($this->buildAutoSubmitForm($endpoint, $payload));
+        Log::info('Pasargad gateway initialized', [
+            'payment_request' => $paymentRequest->id,
+            'payload' => $payload,
+        ]);
+
+        $redirectUrl = $config['payment_url'] ?? 'https://pep.shaparak.ir/payment.aspx';
+        $form = view('components.payment-gateway-redirect', [
+            'action' => $redirectUrl,
+            'fields' => $payload,
+        ]);
+
+        return response($form);
     }
 
     /**
-     * Verify callback payload from Pasargad gateway.
+     * Verify Pasargad callback.
      *
      * @param \Illuminate\Http\Request $request
-     * @param PaymentRequest $paymentRequest
+     * @param \App\Models\PaymentRequest $paymentRequest
      * @return array{success: bool, message: string|null, transaction_id?: string|null, raw_response?: mixed}
      */
-    public function verify($request, PaymentRequest $paymentRequest): array
+    public function verify(Request $request, PaymentRequest $paymentRequest): array
     {
-        $transactionId = $request->input('tref', $request->input('referenceId'));
-        $successFlag = $request->input('result') ?? $request->input('Result');
-        $success = in_array($successFlag, ['Success', 'success', '0', 0, true], true);
+        $token = $request->input('tref');
 
-        // TODO: Call Pasargad verification endpoint using RSA signature and confirm transaction status.
+        // TODO: Implement Pasargad verify/settle call using official signing method with merchant certificate.
+        $isSuccessful = !empty($token);
+
+        $message = $isSuccessful ? null : ($request->input('resultMessage') ?? 'Payment verification failed');
+
+        Log::info('Pasargad gateway callback received', [
+            'payment_request' => $paymentRequest->id,
+            'token' => $token,
+            'raw' => $request->all(),
+        ]);
 
         return [
-            'success' => (bool) $success,
-            'message' => $success ? null : 'Verification failed or payment declined.',
-            'transaction_id' => $transactionId,
+            'success' => $isSuccessful,
+            'message' => $message,
+            'transaction_id' => $token,
             'raw_response' => $request->all(),
         ];
-    }
-
-    /**
-     * Normalize amount to Rial (Pasargad often expects value * 10 when using Toman in UI).
-     *
-     * @param float|int $amount
-     * @return float|int
-     */
-    private function normalizeAmount($amount)
-    {
-        return $amount;
-    }
-
-    /**
-     * @param array $config
-     * @return void
-     */
-    private function assertConfigured(array $config): void
-    {
-        if (empty($config['merchant_code']) || empty($config['terminal_code'])) {
-            throw new InvalidArgumentException('Pasargad gateway is not configured properly.');
-        }
-    }
-
-    /**
-     * @param PaymentRequest $paymentRequest
-     * @param array $config
-     * @return string
-     */
-    private function callbackUrl(PaymentRequest $paymentRequest, array $config): string
-    {
-        return $config['callback_url'] ?? route('pasargad.callback', ['payment_id' => $paymentRequest->id]);
-    }
-
-    /**
-     * @param array $config
-     * @return string
-     */
-    private function purchaseEndpoint(array $config): string
-    {
-        return ($config['mode'] ?? 'test') === 'live'
-            ? 'https://pep.shaparak.ir/gateway.aspx'
-            : 'https://pep.shaparak.ir/gateway.aspx';
-    }
-
-    /**
-     * Create HTML that auto-submits to Pasargad gateway.
-     *
-     * @param string $action
-     * @param array $fields
-     * @return string
-     */
-    private function buildAutoSubmitForm(string $action, array $fields): string
-    {
-        $formInputs = collect($fields)
-            ->filter()
-            ->map(fn ($value, $name) => '<input type="hidden" name="' . e($name) . '" value="' . e($value) . '">')
-            ->implode('');
-
-        return <<<HTML
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Pasargad Redirect</title>
-</head>
-<body onload="document.forms[0].submit()">
-<p>Redirecting to Pasargad gateway...</p>
-<form method="post" action="{$action}">
-    {$formInputs}
-    <noscript><button type="submit">Continue</button></noscript>
-</form>
-</body>
-</html>
-HTML;
     }
 }
