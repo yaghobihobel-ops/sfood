@@ -176,6 +176,7 @@ class ConfigServiceProvider extends ServiceProvider
                     'callback_url' => url('payment/saman/callback'),
                     'payment_url' => data_get($data, 'saman.payment_url', 'https://sep.shaparak.ir/payment.aspx'),
                     'mode' => env('SAMAN_MODE', data_get($data, 'saman.mode', 'test')),
+                    'sandbox' => (bool) data_get($data, 'saman.sandbox', false),
                 ]);
             }
 
@@ -188,6 +189,7 @@ class ConfigServiceProvider extends ServiceProvider
                     'cert_path' => storage_path('app/pasargad/cert.xml'),
                     'mode' => env('PASARGAD_MODE', data_get($data, 'pasargad.mode', 'test')),
                     'currency_multiplier' => data_get($data, 'pasargad.currency_multiplier', 'toman_to_rial'),
+                    'sandbox' => (bool) data_get($data, 'pasargad.sandbox', false),
                 ]);
             }
             $odv = BusinessSetting::where(['key' => 'order_delivery_verification'])->first();

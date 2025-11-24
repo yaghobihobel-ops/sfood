@@ -31,6 +31,13 @@ class PasargadGateway implements PaymentGatewayInterface
         $config = config('payment_gateways.pasargad', []);
         $callbackUrl = $config['callback_url'] ?? url('payment/pasargad/callback');
 
+        if (!empty($config['sandbox'])) {
+            return redirect()->route('payment.sandbox.prompt', [
+                'gateway' => 'pasargad',
+                'payment_request' => $paymentRequest->id,
+            ]);
+        }
+
         // Pasargad typically requires amount in Rial.
         $amountRial = $paymentRequest->payment_amount;
         if (($config['currency_multiplier'] ?? null) === 'toman_to_rial') {
@@ -74,6 +81,20 @@ class PasargadGateway implements PaymentGatewayInterface
      */
     public function verify(Request $request, PaymentRequest $paymentRequest): array
     {
+        $config = config('payment_gateways.pasargad', []);
+
+        if (!empty($config['sandbox'])) {
+            $sandboxResult = $request->input('sandbox_result', 'success');
+            $transactionId = 'SANDBOX-PASARGAD-' . $paymentRequest->id;
+
+            return [
+                'success' => $sandboxResult === 'success',
+                'message' => $sandboxResult === 'success' ? null : 'Sandbox failure simulated',
+                'transaction_id' => $transactionId,
+                'raw_response' => $request->all(),
+            ];
+        }
+
         $token = $request->input('tref');
 
         // TODO: Implement Pasargad verify/settle call using official signing method with merchant certificate.
