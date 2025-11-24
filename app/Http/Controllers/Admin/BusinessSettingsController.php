@@ -938,7 +938,7 @@ class BusinessSettingsController extends Controller
                 }
             }
         }
-        $data_values = Setting::whereIn('settings_type', ['payment_config'])->whereIn('key_name', ['ssl_commerz','paypal','stripe','razor_pay','senang_pay','paytabs','paystack','paymob_accept','paytm','flutterwave','liqpay','bkash','mercadopago'])->get();
+        $data_values = Setting::whereIn('settings_type', ['payment_config'])->whereIn('key_name', ['ssl_commerz','paypal','stripe','razor_pay','senang_pay','paytabs','paystack','paymob_accept','paytm','flutterwave','liqpay','bkash','mercadopago','saman','pasargad'])->get();
 
         return view('admin-views.business-settings.payment-index', compact('published_status', 'payment_url','data_values'));
     }
@@ -956,7 +956,7 @@ class BusinessSettingsController extends Controller
         $request['status'] = $request->status ?? 0;
 
         $validation = [
-            'gateway' => 'required|in:ssl_commerz,paypal,stripe,razor_pay,senang_pay,paytabs,paystack,paymob_accept,paytm,flutterwave,liqpay,bkash,mercadopago',
+            'gateway' => 'required|in:ssl_commerz,paypal,stripe,razor_pay,senang_pay,paytabs,paystack,paymob_accept,paytm,flutterwave,liqpay,bkash,mercadopago,saman,pasargad',
             'mode' => 'required|in:live,test'
         ];
 
@@ -1059,6 +1059,26 @@ class BusinessSettingsController extends Controller
                 'app_secret' => 'required_if:status,1',
                 'username' => 'required_if:status,1',
                 'password' => 'required_if:status,1',
+            ];
+        } elseif ($request['gateway'] == 'saman') {
+            $additional_data = [
+                'status' => 'required|in:1,0',
+                'merchant_id' => 'required_if:status,1',
+                'terminal_id' => 'required_if:status,1',
+                'payment_url' => 'nullable',
+                'callback_url' => 'nullable',
+                'sandbox' => 'required|in:1,0',
+            ];
+        } elseif ($request['gateway'] == 'pasargad') {
+            $additional_data = [
+                'status' => 'required|in:1,0',
+                'merchant_code' => 'required_if:status,1',
+                'terminal_code' => 'required_if:status,1',
+                'payment_url' => 'nullable',
+                'cert_path' => 'nullable',
+                'currency_multiplier' => 'nullable',
+                'callback_url' => 'nullable',
+                'sandbox' => 'required|in:1,0',
             ];
         }
 
