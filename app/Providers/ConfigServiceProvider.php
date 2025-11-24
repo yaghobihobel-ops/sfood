@@ -63,7 +63,9 @@ class ConfigServiceProvider extends ServiceProvider
             'flutterwave',
             'paypal',
             'ssl_commerz',
-            'paystack' ];
+            'paystack',
+            'saman',
+            'pasargad' ];
 
             $data= Setting::whereIn('key_name',$gateway)->pluck('live_values','key_name')->toArray();
             if (isset($data['paystack'])) {
@@ -164,6 +166,29 @@ class ConfigServiceProvider extends ServiceProvider
                 );
 
                 Config::set('config_paytm', $config);
+            }
+
+            // Iranian gateways (Saman SEP / Pasargad PEP)
+            if (data_get($data,'saman',null)) {
+                Config::set('payment_gateways.saman', [
+                    'merchant_id' => data_get($data, 'saman.merchant_id', null),
+                    'terminal_id' => data_get($data, 'saman.terminal_id', null),
+                    'callback_url' => url('payment/saman/callback'),
+                    'payment_url' => data_get($data, 'saman.payment_url', 'https://sep.shaparak.ir/payment.aspx'),
+                    'mode' => env('SAMAN_MODE', data_get($data, 'saman.mode', 'test')),
+                ]);
+            }
+
+            if (data_get($data,'pasargad',null)) {
+                Config::set('payment_gateways.pasargad', [
+                    'merchant_code' => data_get($data, 'pasargad.merchant_code', null),
+                    'terminal_code' => data_get($data, 'pasargad.terminal_code', null),
+                    'callback_url' => url('payment/pasargad/callback'),
+                    'payment_url' => data_get($data, 'pasargad.payment_url', 'https://pep.shaparak.ir/payment.aspx'),
+                    'cert_path' => storage_path('app/pasargad/cert.xml'),
+                    'mode' => env('PASARGAD_MODE', data_get($data, 'pasargad.mode', 'test')),
+                    'currency_multiplier' => data_get($data, 'pasargad.currency_multiplier', 'toman_to_rial'),
+                ]);
             }
             $odv = BusinessSetting::where(['key' => 'order_delivery_verification'])->first();
             if ($odv) {
