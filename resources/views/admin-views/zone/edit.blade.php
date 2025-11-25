@@ -273,10 +273,7 @@
                 for(let i=0; i<data.length;i++)
                 {
                     const zonePoints = Array.isArray(data[i]) ? data[i] : [];
-                    const coords = zonePoints.map((point) => ({
-                        lat: point?.lat,
-                        lng: point?.lng
-                    })).filter((point) => Number.isFinite(Number(point.lat)) && Number.isFinite(Number(point.lng)));
+                    const coords = normalizeCoordinates(zonePoints);
 
                     const polygon = AppMap.addPolygon(map, coords, {
                         color: '#FF0000',
@@ -291,9 +288,11 @@
                 }
                 if (polygons.length) {
                     const allPoints = polygons
-                        .map((poly) => poly.getLatLngs()[0] || [])
-                        .flat();
-                    AppMap.fitToCoordinates(map, allPoints.map((p) => ({ lat: p.lat, lng: p.lng })));
+                        .map((poly) => AppMap.layerToCoordinateArray(poly))
+                        .flat()
+                        .map((pair) => ({ lat: pair[1], lng: pair[0] }))
+                        .filter((point) => Number.isFinite(point.lat) && Number.isFinite(point.lng));
+                    AppMap.fitToCoordinates(map, allPoints);
                 }
 
             },

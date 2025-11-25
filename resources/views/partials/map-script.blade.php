@@ -35,19 +35,42 @@
                 const zoom = options.zoom || {{ $config['default_center']['zoom'] ?? 12 }};
 
                 const map = L.map(elementId).setView([center.lat, center.lng], zoom);
-                const tileUrl = options.tileUrl || 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
+
+                const fallbackTileUrls = Array.isArray(options.fallbackTileUrls) && options.fallbackTileUrls.length
+                    ? options.fallbackTileUrls
+                    : [
+                        options.tileUrl || 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+                        'https://tile.openstreetmap.org/{z}/{x}/{y}.png'
+                    ];
+
                 const tileOptions = Object.assign({
                     maxZoom: 19,
                     attribution: '&copy; OpenStreetMap contributors'
                 }, options.tileOptions || {});
 
-                const tileLayer = L.tileLayer(tileUrl, tileOptions);
-                tileLayer.on('tileerror', function (errorEvent) {
-                    console.warn('Tile load error', { url: errorEvent?.tile?.src, message: errorEvent?.message });
-                });
-                tileLayer.addTo(map);
+                const tileLayer = this.addTileLayer(map, fallbackTileUrls, tileOptions);
+                map.__appMapTileLayer = tileLayer;
 
                 return map;
+            },
+            /**
+             * Add a tile layer with basic fallback support and error logging.
+             */
+            addTileLayer(map, tileUrls, tileOptions = {}) {
+                const sources = Array.isArray(tileUrls) && tileUrls.length ? tileUrls : ['https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'];
+                let currentIndex = 0;
+                const layer = L.tileLayer(sources[currentIndex], tileOptions);
+
+                layer.on('tileerror', (errorEvent) => {
+                    console.warn('Tile load error', { url: errorEvent?.tile?.src, message: errorEvent?.message });
+                    if (sources.length > currentIndex + 1) {
+                        currentIndex += 1;
+                        layer.setUrl(sources[currentIndex]);
+                    }
+                });
+
+                layer.addTo(map);
+                return layer;
             },
             /**
              * Add a marker to the map.
@@ -66,8 +89,16 @@
 
                 const latLngs = [];
                 coords.forEach((point, idx) => {
-                    const lat = Number(point?.lat ?? point?.latitude);
-                    const lng = Number(point?.lng ?? point?.longitude);
+                    let lat = null;
+                    let lng = null;
+
+                    if (Array.isArray(point) && point.length >= 2) {
+                        lng = Number(point[0]);
+                        lat = Number(point[1]);
+                    } else {
+                        lat = Number(point?.lat ?? point?.latitude);
+                        lng = Number(point?.lng ?? point?.longitude);
+                    }
 
                     if (Number.isFinite(lat) && Number.isFinite(lng)) {
                         latLngs.push([lat, lng]);
@@ -101,8 +132,17 @@
                 }
                 const latLngs = [];
                 coords.forEach((point, idx) => {
-                    const lat = Number(point?.lat ?? point?.latitude);
-                    const lng = Number(point?.lng ?? point?.longitude);
+                    let lat = null;
+                    let lng = null;
+
+                    if (Array.isArray(point) && point.length >= 2) {
+                        lng = Number(point[0]);
+                        lat = Number(point[1]);
+                    } else {
+                        lat = Number(point?.lat ?? point?.latitude);
+                        lng = Number(point?.lng ?? point?.longitude);
+                    }
+
                     if (Number.isFinite(lat) && Number.isFinite(lng)) {
                         latLngs.push([lat, lng]);
                     } else {

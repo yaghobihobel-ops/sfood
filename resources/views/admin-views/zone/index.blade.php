@@ -424,6 +424,31 @@
         //     ...
         // }
 
+        /**
+         * Normalize any coordinate structure (array pairs, nested arrays, or lat/lng objects)
+         * into an array of {lat, lng} objects that Leaflet can consume safely.
+         */
+        function normalizeCoordinates(rawCoords) {
+            const normalized = [];
+            const walk = (value) => {
+                if (Array.isArray(value)) {
+                    if (value.length === 2 && Number.isFinite(Number(value[0])) && Number.isFinite(Number(value[1]))) {
+                        normalized.push({ lat: Number(value[1]), lng: Number(value[0]) });
+                    } else {
+                        value.forEach((child) => walk(child));
+                    }
+                    return;
+                }
+
+                if (value && typeof value === 'object' && Number.isFinite(Number(value.lat)) && Number.isFinite(Number(value.lng))) {
+                    normalized.push({ lat: Number(value.lat), lng: Number(value.lng) });
+                }
+            };
+
+            walk(rawCoords);
+            return normalized;
+        }
+
         function initializeLeaflet() {
             @php($default_location=\App\Models\BusinessSetting::where('key','default_location')->first())
             @php($default_location=$default_location->value?json_decode($default_location->value, true):0)
@@ -447,16 +472,7 @@
                 $('#coordinates').val(coords.join(','));
                 auto_grow();
             });
-
-            if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition((position) => {
-                    const pos = {
-                        lat: position.coords.latitude,
-                        lng: position.coords.longitude,
-                    };
-                    map.setView([pos.lat, pos.lng]);
-                });
-            }
+            // Geolocation intentionally disabled to avoid external location provider errors in some environments.
         }
 
 
@@ -469,10 +485,7 @@
                     for(let i=0; i<data.length;i++)
                     {
                         const zonePoints = Array.isArray(data[i]) ? data[i] : [];
-                        const coords = zonePoints.map((point) => ({
-                            lat: point?.lat,
-                            lng: point?.lng
-                        })).filter((point) => Number.isFinite(Number(point.lat)) && Number.isFinite(Number(point.lng)));
+                        const coords = normalizeCoordinates(zonePoints);
 
                         const polygon = AppMap.addPolygon(map, coords, {
                             color: '#FF0000',
@@ -487,9 +500,11 @@
                     }
                     if (polygons.length) {
                         const allPoints = polygons
-                            .map((poly) => poly.getLatLngs()[0] || [])
-                            .flat();
-                        AppMap.fitToCoordinates(map, allPoints.map((p) => ({ lat: p.lat, lng: p.lng })));
+                            .map((poly) => AppMap.layerToCoordinateArray(poly))
+                            .flat()
+                            .map((pair) => ({ lat: pair[1], lng: pair[0] }))
+                            .filter((point) => Number.isFinite(point.lat) && Number.isFinite(point.lng));
+                        AppMap.fitToCoordinates(map, allPoints);
                     }
                 },
             });

@@ -2227,9 +2227,22 @@ class Helpers
     public static function format_coordiantes($coordinates)
     {
         $data = [];
-        foreach ($coordinates as $coord) {
-            $data[] = (object)['lat' => $coord[1], 'lng' => $coord[0]];
-        }
+
+        $walk = function ($coord) use (&$data, &$walk) {
+            if (is_array($coord) && count($coord) === 2 && is_numeric($coord[0]) && is_numeric($coord[1])) {
+                $data[] = (object)['lat' => (float) $coord[1], 'lng' => (float) $coord[0]];
+                return;
+            }
+
+            if (is_array($coord)) {
+                foreach ($coord as $child) {
+                    $walk($child);
+                }
+            }
+        };
+
+        $walk($coordinates);
+
         return $data;
     }
 
