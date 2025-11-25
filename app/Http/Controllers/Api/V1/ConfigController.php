@@ -22,6 +22,7 @@ use App\Models\FAQ;
 use App\Models\OfflinePaymentMethod;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Cache;
+use App\Services\Map\MapService;
 use App\Models\ReactPromotionalBanner;
 use App\Models\ReactTestimonial;
 use Illuminate\Support\Facades\Schema;
@@ -31,10 +32,12 @@ use MatanYadaev\EloquentSpatial\Objects\Point;
 class ConfigController extends Controller
 {
     private $map_api_key;
+    protected MapService $mapService;
     use AddonHelper;
 
-    function __construct()
+    public function __construct(MapService $mapService)
     {
+        $this->mapService = $mapService;
         $map_api_key_server = BusinessSetting::where(['key' => 'map_api_key_server'])->first()?->value ?? null;
         $this->map_api_key = $map_api_key_server;
     }
@@ -374,30 +377,29 @@ class ConfigController extends Controller
         }
 
 
-        $apiKey = $this->map_api_key;
-        $url = "https://places.googleapis.com/v1/places:autocomplete";
+        // OLD GOOGLE MAPS IMPLEMENTATION (commented out, now handled by MapService/GoogleMapProvider)
+        // $apiKey = $this->map_api_key;
+        // $url = "https://places.googleapis.com/v1/places:autocomplete";
+        // $data = [
+        //     "input" => $request['search_text'],
+        //     "languageCode" => app()->getLocale(),
+        // ];
+        // $headers = [
+        //     "Content-Type: application/json",
+        //     "X-Goog-Api-Key: $apiKey",
+        // ];
+        // $ch = curl_init($url);
+        // curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        // curl_setopt($ch, CURLOPT_POST, true);
+        // curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
+        // curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+        // $response = curl_exec($ch);
+        // curl_close($ch);
+        // return json_decode($response,true);
 
-        $data = [
-            "input" => $request['search_text'],
-            "languageCode" => app()->getLocale(),
-        ];
+        $data = $this->mapService->autocomplete($request->input('search_text'));
 
-        $headers = [
-            "Content-Type: application/json",
-            "X-Goog-Api-Key: $apiKey",
-
-        ];
-
-        $ch = curl_init($url);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_POST, true);
-        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
-        curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
-
-        $response = curl_exec($ch);
-        curl_close($ch);
-
-        return json_decode($response,true);
+        return response()->json($data);
 
         // old
         // $response = Http::get('https://maps.googleapis.com/maps/api/place/autocomplete/json?input=' . $request['search_text'] . '&key=' . $this->map_api_key);
@@ -418,36 +420,41 @@ class ConfigController extends Controller
             return response()->json(['errors' => Helpers::error_processor($validator)], 403);
         }
 
-        $apiKey = $this->map_api_key;
-        $url = "https://routes.googleapis.com/distanceMatrix/v2:computeRouteMatrix";
+        // OLD GOOGLE MAPS IMPLEMENTATION (commented out, now handled by MapService/GoogleMapProvider)
+        // $apiKey = $this->map_api_key;
+        // $url = "https://routes.googleapis.com/distanceMatrix/v2:computeRouteMatrix";
+        // $data = [
+        //     "origins" => [
+        //         ["waypoint" => ["location" => ["latLng" => ["latitude" => $request['origin_lat'], "longitude" => $request['origin_lng']]]]]
+        //     ],
+        //     "destinations" => [
+        //         ["waypoint" => ["location" => ["latLng" => ["latitude" => $request['destination_lat'], "longitude" => $request['destination_lng']]]]],
+        //     ],
+        //     "travelMode" => "WALK",
+        // ];
+        // $headers = [
+        //     "Content-Type: application/json",
+        //     "X-Goog-Api-Key: $apiKey",
+        //     "X-Goog-FieldMask: duration,distanceMeters,localizedValues"
+        // ];
+        // $ch = curl_init();
+        // curl_setopt($ch, CURLOPT_URL, $url);
+        // curl_setopt($ch, CURLOPT_POST, true);
+        // curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+        // curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        // curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
+        // $response = curl_exec($ch);
+        // curl_close($ch);
+        // return json_decode($response, true)[0];
 
-        $data = [
-            "origins" => [
-                ["waypoint" => ["location" => ["latLng" => ["latitude" => $request['origin_lat'], "longitude" => $request['origin_lng']]]]]
-            ],
-            "destinations" => [
-                ["waypoint" => ["location" => ["latLng" => ["latitude" => $request['destination_lat'], "longitude" => $request['destination_lng']]]]],
-            ],
-            "travelMode" => "WALK",
-            // "routingPreference" => "TRAFFIC_AWARE"
-        ];
+        $data = $this->mapService->distance(
+            (float) $request['origin_lat'],
+            (float) $request['origin_lng'],
+            (float) $request['destination_lat'],
+            (float) $request['destination_lng']
+        );
 
-        $headers = [
-            "Content-Type: application/json",
-            "X-Goog-Api-Key: $apiKey",
-            "X-Goog-FieldMask: duration,distanceMeters,localizedValues"
-        ];
-
-        $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, $url);
-        curl_setopt($ch, CURLOPT_POST, true);
-        curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
-
-        $response = curl_exec($ch);
-        curl_close($ch);
-        return json_decode($response, true)[0];
+        return response()->json($data);
 
         // old
         // $response = Http::get('https://maps.googleapis.com/maps/api/distancematrix/json?origins=' . $request['origin_lat'] . ',' . $request['origin_lng'] . '&destinations=' . $request['destination_lat'] . ',' . $request['destination_lng'] . '&key=' . $this->map_api_key . '&mode=walking');
@@ -466,26 +473,24 @@ class ConfigController extends Controller
         }
 
 
-        $apiKey = $this->map_api_key;
-        $url = 'https://places.googleapis.com/v1/places/'.$request['placeid'];
+        // OLD GOOGLE MAPS IMPLEMENTATION (commented out, now handled by MapService/GoogleMapProvider)
+        // $apiKey = $this->map_api_key;
+        // $url = 'https://places.googleapis.com/v1/places/'.$request['placeid'];
+        // $ch = curl_init();
+        // curl_setopt($ch, CURLOPT_URL, $url);
+        // curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        // curl_setopt($ch, CURLOPT_HTTPHEADER, [
+        //     'Content-Type: application/json',
+        //     'X-Goog-Api-Key: ' . $apiKey,
+        //     'X-Goog-FieldMask: id,displayName,formattedAddress,location',
+        // ]);
+        // $response = curl_exec($ch);
+        // curl_close($ch);
+        // return json_decode($response,true);
 
-        // Initialize cURL session
-        $ch = curl_init();
+        $data = $this->mapService->placeDetails($request->input('placeid'));
 
-        // Set cURL options
-        curl_setopt($ch, CURLOPT_URL, $url);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_HTTPHEADER, [
-            'Content-Type: application/json',
-            'X-Goog-Api-Key: ' . $apiKey,
-            'X-Goog-FieldMask: id,displayName,formattedAddress,location',
-        ]);
-
-        // Execute the request and get the response
-        $response = curl_exec($ch);
-        curl_close($ch);
-
-        return json_decode($response,true);
+        return response()->json($data);
 
         // old
         // $response = Http::get('https://maps.googleapis.com/maps/api/place/details/json?placeid=' . $request['placeid'] . '&key=' . $this->map_api_key);
@@ -502,8 +507,13 @@ class ConfigController extends Controller
         if ($validator->errors()->count() > 0) {
             return response()->json(['errors' => Helpers::error_processor($validator)], 403);
         }
-        $response = Http::get('https://maps.googleapis.com/maps/api/geocode/json?latlng=' . $request->lat . ',' . $request->lng . '&key=' . $this->map_api_key);
-        return $response->json();
+        // OLD GOOGLE MAPS IMPLEMENTATION (commented out, now handled by MapService/GoogleMapProvider)
+        // $response = Http::get('https://maps.googleapis.com/maps/api/geocode/json?latlng=' . $request->lat . ',' . $request->lng . '&key=' . $this->map_api_key);
+        // return $response->json();
+
+        $data = $this->mapService->geocode((float) $request->lat, (float) $request->lng);
+
+        return response()->json($data);
     }
 
     public function landing_page(){

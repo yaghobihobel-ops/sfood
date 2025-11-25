@@ -549,7 +549,9 @@
     <script src="{{ dynamicAsset('public/assets/admin') }}/js/tags-input.min.js"></script>
 
     <script
-        src="https://maps.googleapis.com/maps/api/js?key={{ \App\Models\BusinessSetting::where('key', 'map_api_key')->first()->value }}&libraries=places&callback=initMap&v=3.45.8">
+        {{-- // OLD GOOGLE MAPS IMPLEMENTATION (commented out, kept for reference) --}}
+        {{-- src="https://maps.googleapis.com/maps/api/js?key={{ \App\Models\BusinessSetting::where('key', 'map_api_key')->first()->value }}&libraries=places&callback=initMap&v=3.45.8"> --}}
+        @include('partials.map-script', ['libraries' => 'places', 'callback' => 'initMap'])
     </script>
 
     <script>
