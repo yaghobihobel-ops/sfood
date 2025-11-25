@@ -579,7 +579,22 @@
                     else{
                         $('.tab-content').find('input:text').val('');
                         $('input[name="name"]').val(null);
-                        lastpolygon.setMap(null);
+
+                        // Remove the last drawn polygon safely across Leaflet/Google implementations
+                        if (lastpolygon) {
+                            if (drawContext && drawContext.drawnItems && typeof drawContext.drawnItems.removeLayer === 'function') {
+                                drawContext.drawnItems.removeLayer(lastpolygon);
+                            } else if (map && typeof map.removeLayer === 'function') {
+                                map.removeLayer(lastpolygon);
+                            } else if (typeof lastpolygon.remove === 'function') {
+                                lastpolygon.remove();
+                            } else if (typeof lastpolygon.setMap === 'function') {
+                                // OLD GOOGLE MAPS IMPLEMENTATION (commented out after Leaflet migration)
+                                lastpolygon.setMap(null);
+                            }
+                            lastpolygon = null;
+                        }
+
                         $('#coordinates').val(null);
                         toastr.success("{{ translate('messages.New_Business_Zone_Created_Successfully!') }}", {
                                 CloseButton: true,
