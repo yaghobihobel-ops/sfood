@@ -7740,4 +7740,5 @@
   'saman' => 'Saman',
   'The merchant id field is required when status is 1.' => 'The merchant id field is required when status is 1.',
   'The terminal id field is required when status is 1.' => 'The terminal id field is required when status is 1.',
+  'Default Business zone name is required' => 'Default Business zone name is required',
 );
