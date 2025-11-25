@@ -669,9 +669,13 @@
 @endsection
 
 @push('script_2')
+{{-- // OLD GOOGLE MAPS IMPLEMENTATION (commented out, kept for reference) --}}
+{{--
 <script
         src="https://maps.googleapis.com/maps/api/js?key={{\App\Models\BusinessSetting::where('key', 'map_api_key')->first()->value}}&callback=initMap&v=3.45.8">
 </script>
+--}}
+@include('partials.map-script', ['callback' => 'initMap'])
 <script src="{{ dynamicAsset('public/assets/admin') }}/js/file-preview/document-upload.js"></script>
 <script>
     "use strict";
