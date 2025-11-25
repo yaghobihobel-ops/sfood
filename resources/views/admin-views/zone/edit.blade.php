@@ -175,6 +175,31 @@
     let polygons = [];
 
     /**
+     * Normalize raw coordinate structures (arrays of [lng, lat], nested arrays, or objects with lat/lng)
+     * into an array of {lat, lng} objects usable by Leaflet.
+     */
+    function normalizeCoordinates(rawCoords) {
+        const normalized = [];
+        const walk = (value) => {
+            if (Array.isArray(value)) {
+                if (value.length === 2 && Number.isFinite(Number(value[0])) && Number.isFinite(Number(value[1]))) {
+                    normalized.push({ lat: Number(value[1]), lng: Number(value[0]) });
+                } else {
+                    value.forEach((child) => walk(child));
+                }
+                return;
+            }
+
+            if (value && typeof value === 'object' && Number.isFinite(Number(value.lat)) && Number.isFinite(Number(value.lng))) {
+                normalized.push({ lat: Number(value.lat), lng: Number(value.lng) });
+            }
+        };
+
+        walk(rawCoords);
+        return normalized;
+    }
+
+    /**
      * Format an array of Leaflet latlngs into the original coordinate string
      * "(lat, lng),(lat, lng)" expected by the backend.
      */
@@ -200,9 +225,10 @@
         drawContext = AppMap.enablePolygonDrawing(map);
 
         const polygonCoords = @json($area['coordinates']);
-        if (Array.isArray(polygonCoords) && polygonCoords.length) {
-            const coords = polygonCoords.map((pair) => ({ lat: pair[1], lng: pair[0] }));
-            const polygon = AppMap.addPolygon(map, coords, {
+        const normalizedPolygonCoords = normalizeCoordinates(polygonCoords);
+
+        if (normalizedPolygonCoords.length) {
+            const polygon = AppMap.addPolygon(map, normalizedPolygonCoords, {
                 color: '#050df2',
                 weight: 2,
                 opacity: 0.8,
@@ -246,10 +272,12 @@
                 polygons = [];
                 for(let i=0; i<data.length;i++)
                 {
-                    const coords = data[i].map((point) => ({
-                        lat: point[1],
-                        lng: point[0]
-                    }));
+                    const zonePoints = Array.isArray(data[i]) ? data[i] : [];
+                    const coords = zonePoints.map((point) => ({
+                        lat: point?.lat,
+                        lng: point?.lng
+                    })).filter((point) => Number.isFinite(Number(point.lat)) && Number.isFinite(Number(point.lng)));
+
                     const polygon = AppMap.addPolygon(map, coords, {
                         color: '#FF0000',
                         weight: 2,

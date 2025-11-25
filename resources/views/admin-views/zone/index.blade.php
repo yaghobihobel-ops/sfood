@@ -468,10 +468,12 @@
                 success: function (data) {
                     for(let i=0; i<data.length;i++)
                     {
-                        const coords = data[i].map((point) => ({
-                            lat: point[1],
-                            lng: point[0]
-                        }));
+                        const zonePoints = Array.isArray(data[i]) ? data[i] : [];
+                        const coords = zonePoints.map((point) => ({
+                            lat: point?.lat,
+                            lng: point?.lng
+                        })).filter((point) => Number.isFinite(Number(point.lat)) && Number.isFinite(Number(point.lng)));
+
                         const polygon = AppMap.addPolygon(map, coords, {
                             color: '#FF0000',
                             weight: 2,
