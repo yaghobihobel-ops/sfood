@@ -186,6 +186,8 @@ class IranMapProvider implements MapProviderInterface
             'driver' => 'iran',
             'js_url' => null,
             'default_center' => config('maps.default_center'),
+            'tile_url' => config('maps.tile_url'),
+            'tile_urls' => config('maps.tile_urls'),
         ];
     }
 
