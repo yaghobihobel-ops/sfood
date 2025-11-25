@@ -35,10 +35,17 @@
                 const zoom = options.zoom || {{ $config['default_center']['zoom'] ?? 12 }};
 
                 const map = L.map(elementId).setView([center.lat, center.lng], zoom);
-                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                const tileUrl = options.tileUrl || 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
+                const tileOptions = Object.assign({
                     maxZoom: 19,
                     attribution: '&copy; OpenStreetMap contributors'
-                }).addTo(map);
+                }, options.tileOptions || {});
+
+                const tileLayer = L.tileLayer(tileUrl, tileOptions);
+                tileLayer.on('tileerror', function (errorEvent) {
+                    console.warn('Tile load error', { url: errorEvent?.tile?.src, message: errorEvent?.message });
+                });
+                tileLayer.addTo(map);
 
                 return map;
             },
@@ -52,24 +59,59 @@
              * Create a polygon from coordinate pairs and optionally fit bounds.
              */
             addPolygon(map, coords = [], options = {}, fit = true) {
-                if (!coords.length) {
+                if (!Array.isArray(coords) || coords.length === 0) {
+                    console.warn('AppMap.addPolygon: invalid or empty coordinates', coords);
                     return null;
                 }
-                const latLngs = coords.map((point) => [point.lat || point.latitude, point.lng || point.longitude]);
-                const polygon = L.polygon(latLngs, options).addTo(map);
-                if (fit) {
-                    map.fitBounds(polygon.getBounds());
+
+                const latLngs = [];
+                coords.forEach((point, idx) => {
+                    const lat = Number(point?.lat ?? point?.latitude);
+                    const lng = Number(point?.lng ?? point?.longitude);
+
+                    if (Number.isFinite(lat) && Number.isFinite(lng)) {
+                        latLngs.push([lat, lng]);
+                    } else {
+                        console.warn('AppMap.addPolygon: skipping invalid coordinate', { point, idx });
+                    }
+                });
+
+                if (!latLngs.length) {
+                    console.warn('AppMap.addPolygon: no valid coordinates to draw', coords);
+                    return null;
                 }
-                return polygon;
+
+                try {
+                    const polygon = L.polygon(latLngs, options).addTo(map);
+                    if (fit) {
+                        map.fitBounds(polygon.getBounds());
+                    }
+                    return polygon;
+                } catch (error) {
+                    console.error('AppMap.addPolygon: failed to draw polygon', error);
+                    return null;
+                }
             },
             /**
              * Fit map to given coordinate bounds helper.
              */
             fitToCoordinates(map, coords = []) {
-                if (!coords.length) {
+                if (!Array.isArray(coords) || coords.length === 0) {
                     return;
                 }
-                const latLngs = coords.map((point) => [point.lat || point.latitude, point.lng || point.longitude]);
+                const latLngs = [];
+                coords.forEach((point, idx) => {
+                    const lat = Number(point?.lat ?? point?.latitude);
+                    const lng = Number(point?.lng ?? point?.longitude);
+                    if (Number.isFinite(lat) && Number.isFinite(lng)) {
+                        latLngs.push([lat, lng]);
+                    } else {
+                        console.warn('AppMap.fitToCoordinates: skipping invalid coordinate', { point, idx });
+                    }
+                });
+                if (!latLngs.length) {
+                    return;
+                }
                 const bounds = L.latLngBounds(latLngs);
                 map.fitBounds(bounds);
             },
@@ -100,18 +142,26 @@
                 if (!layer.getLatLngs) {
                     return [];
                 }
-                const latLngs = layer.getLatLngs();
                 const coords = [];
                 const extract = (points) => {
-                    points.forEach((point) => {
-                        if (Array.isArray(point)) {
-                            extract(point);
-                        } else if (point && point.lat !== undefined && point.lng !== undefined) {
-                            coords.push([point.lng, point.lat]);
-                        }
-                    });
+                    if (!points) {
+                        return;
+                    }
+                    if (Array.isArray(points)) {
+                        points.forEach((point) => extract(point));
+                        return;
+                    }
+                    const lat = Number(points?.lat);
+                    const lng = Number(points?.lng);
+                    if (Number.isFinite(lat) && Number.isFinite(lng)) {
+                        coords.push([lng, lat]);
+                    }
                 };
-                extract(latLngs);
+                try {
+                    extract(layer.getLatLngs());
+                } catch (error) {
+                    console.warn('AppMap.layerToCoordinateArray: unable to extract latlngs', error);
+                }
                 return coords;
             }
         };
