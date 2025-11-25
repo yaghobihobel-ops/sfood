@@ -193,6 +193,10 @@ trait PaymentGatewayTrait
                 "JOD" => "Jordanian Dinar",
                 "LBP" => "Lebanese Pound"
             ],
+            "pasargad" => [
+                "IRR" => "Iranian Rial",
+                "IRT" => "Iranian Toman",
+            ],
             "paytm" => [
                 "INR" => "Indian Rupee"
             ],
@@ -201,6 +205,10 @@ trait PaymentGatewayTrait
             ],
             "pvit" => [
                 "NGN" => "Nigerian Naira"
+            ],
+            "saman" => [
+                "IRR" => "Iranian Rial",
+                "IRT" => "Iranian Toman",
             ],
             "razor_pay" => [
                 "INR" => "Indian Rupee",
@@ -254,6 +262,10 @@ trait PaymentGatewayTrait
             "swish" => [
                 "SEK" => "Swedish Krona"
             ],
+            "saman" => [
+                "IRR" => "Iranian Rial",
+                "IRT" => "Iranian Toman",
+            ],
             "tap" => [
                 "AED" => "United Arab Emirates Dirham",
                 "SAR" => "Saudi Riyal",
@@ -276,6 +288,10 @@ trait PaymentGatewayTrait
                 "QAR" => "Qatari Riyal",
                 "BHD" => "Bahraini Dinar",
                 "KWD" => "Kuwaiti Dinar"
+            ],
+            "pasargad" => [
+                "IRR" => "Iranian Rial",
+                "IRT" => "Iranian Toman",
             ],
             "viva_wallet" => [
                 "EUR" => "Euro",
