@@ -239,6 +239,6 @@
     </script>
 @else
     {{-- Google Maps JS (legacy) --}}
-    {{-- <script src="{{ $jsUrl }}"></script> --}}
+    <script src="{{ $jsUrl }}"></script>
 @endif
 
