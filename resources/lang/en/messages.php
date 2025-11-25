@@ -7737,4 +7737,7 @@
   'Section Availability' => 'Section Availability',
   'The react restaurant section sub title.0 field is required when react restaurant registration button status is 1.' => 'The react restaurant section sub title.0 field is required when react restaurant registration button status is 1.',
   'Keep the description under 100 character for better visualisation.' => 'Keep the description under 100 character for better visualisation.',
+  'saman' => 'Saman',
+  'The merchant id field is required when status is 1.' => 'The merchant id field is required when status is 1.',
+  'The terminal id field is required when status is 1.' => 'The terminal id field is required when status is 1.',
 );
