@@ -165,6 +165,8 @@ class GoogleMapProvider implements MapProviderInterface
                 BusinessSetting::where('key', 'map_api_key')->first()?->value
             ),
             'default_center' => config('maps.default_center'),
+            'tile_url' => config('maps.tile_url'),
+            'tile_urls' => config('maps.tile_urls'),
         ];
     }
 }

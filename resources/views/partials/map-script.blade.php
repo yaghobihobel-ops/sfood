@@ -5,6 +5,8 @@
     $libraries = $libraries ?? null;
     $callback = $callback ?? null;
     $jsUrl = $config['js_url'] ?? null;
+    $tileUrl = $config['tile_url'] ?? 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
+    $tileUrls = $config['tile_urls'] ?? [];
 
     if ($jsUrl && $libraries && !str_contains($jsUrl, 'libraries=')) {
         $separator = str_contains($jsUrl, '?') ? '&' : '?';
@@ -26,6 +28,15 @@
 
     {{-- Lightweight map helper bridging Blade maps to Leaflet --}}
     <script>
+        const defaultTileUrl = @json($tileUrl);
+        const defaultTileUrls = (() => {
+            const urls = @json($tileUrls);
+            if (Array.isArray(urls) && urls.length) {
+                return urls;
+            }
+            return [defaultTileUrl];
+        })();
+
         window.AppMap = window.AppMap || {
             /**
              * Create a Leaflet map instance using defaults from config.
@@ -38,10 +49,7 @@
 
                 const fallbackTileUrls = Array.isArray(options.fallbackTileUrls) && options.fallbackTileUrls.length
                     ? options.fallbackTileUrls
-                    : [
-                        options.tileUrl || 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-                        'https://tile.openstreetmap.org/{z}/{x}/{y}.png'
-                    ];
+                    : (options.tileUrls || defaultTileUrls);
 
                 const tileOptions = Object.assign({
                     maxZoom: 19,
@@ -57,7 +65,7 @@
              * Add a tile layer with basic fallback support and error logging.
              */
             addTileLayer(map, tileUrls, tileOptions = {}) {
-                const sources = Array.isArray(tileUrls) && tileUrls.length ? tileUrls : ['https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'];
+                const sources = Array.isArray(tileUrls) && tileUrls.length ? tileUrls : defaultTileUrls;
                 let currentIndex = 0;
                 const layer = L.tileLayer(sources[currentIndex], tileOptions);
 
@@ -66,6 +74,29 @@
                     if (sources.length > currentIndex + 1) {
                         currentIndex += 1;
                         layer.setUrl(sources[currentIndex]);
+                    } else {
+                        map.__tilesFailed = true;
+                        const container = map.getContainer();
+                        if (container && !container.querySelector('.tile-fallback-message')) {
+                            const overlay = document.createElement('div');
+                            overlay.className = 'tile-fallback-message';
+                            overlay.style.position = 'absolute';
+                            overlay.style.top = '0';
+                            overlay.style.left = '0';
+                            overlay.style.right = '0';
+                            overlay.style.bottom = '0';
+                            overlay.style.display = 'flex';
+                            overlay.style.alignItems = 'center';
+                            overlay.style.justifyContent = 'center';
+                            overlay.style.background = 'rgba(0,0,0,0.35)';
+                            overlay.style.color = '#fff';
+                            overlay.style.textAlign = 'center';
+                            overlay.style.padding = '8px';
+                            overlay.style.fontSize = '14px';
+                            overlay.innerText = 'Map tiles could not be loaded. Please configure MAP_TILE_URL(S) or check your network connection.';
+                            container.style.position = 'relative';
+                            container.appendChild(overlay);
+                        }
                     }
                 });
 
