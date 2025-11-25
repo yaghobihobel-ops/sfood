@@ -154,7 +154,9 @@
 @endsection
 
 @push('script_2')
-<script src="https://maps.googleapis.com/maps/api/js?v=3.45.8&key={{ \App\Models\BusinessSetting::where('key', 'map_api_key')->first()->value }}&libraries=drawing,places"></script>
+{{-- // OLD GOOGLE MAPS IMPLEMENTATION (commented out, kept for reference) --}}
+{{-- <script src="https://maps.googleapis.com/maps/api/js?v=3.45.8&key={{ \App\Models\BusinessSetting::where('key', 'map_api_key')->first()->value }}&libraries=drawing,places"></script> --}}
+@include('partials.map-script', ['libraries' => 'drawing,places'])
 <script>
     "use strict";
     auto_grow();
@@ -164,168 +166,102 @@
         element.style.height = (element.scrollHeight)+"px";
     }
 
+    // OLD GOOGLE MAPS IMPLEMENTATION (commented out after Leaflet migration)
+    // ... original initialize(), drawingManager, and SearchBox logic ...
+
     let map; // Global declaration of the map
-    let lat_longs = new Array();
-    let drawingManager;
+    let drawContext;
     let lastpolygon = null;
-    let bounds = new google.maps.LatLngBounds();
     let polygons = [];
 
-
-    function resetMap(controlDiv) {
-        // Set CSS for the control border.
-        const controlUI = document.createElement("div");
-        controlUI.style.backgroundColor = "#fff";
-        controlUI.style.border = "2px solid #fff";
-        controlUI.style.borderRadius = "3px";
-        controlUI.style.boxShadow = "0 2px 6px rgba(0,0,0,.3)";
-        controlUI.style.cursor = "pointer";
-        controlUI.style.marginTop = "8px";
-        controlUI.style.marginBottom = "22px";
-        controlUI.style.textAlign = "center";
-        controlUI.title = "Reset map";
-        controlDiv.appendChild(controlUI);
-        // Set CSS for the control interior.
-        const controlText = document.createElement("div");
-        controlText.style.color = "rgb(25,25,25)";
-        controlText.style.fontFamily = "Roboto,Arial,sans-serif";
-        controlText.style.fontSize = "10px";
-        controlText.style.lineHeight = "16px";
-        controlText.style.paddingLeft = "2px";
-        controlText.style.paddingRight = "2px";
-        controlText.innerHTML = "X";
-        controlUI.appendChild(controlText);
-        // Setup the click event listeners: simply set the map to Chicago.
-        controlUI.addEventListener("click", () => {
-            lastpolygon.setMap(null);
-            $('#coordinates').val('');
-
-        });
-        controlUI.setAttribute("class", "reset-map-btn");
-    }
-
-    function initialize() {
-        let myLatlng = new google.maps.LatLng({{trim(explode(' ',$zone->center)[1], 'POINT()')}}, {{trim(explode(' ',$zone->center)[0], 'POINT()')}});
-        let myOptions = {
-            zoom: 13,
-            center: myLatlng,
-            mapTypeId: google.maps.MapTypeId.ROADMAP
-        };
-        map = new google.maps.Map(document.getElementById("map-canvas"), myOptions);
-
-        const polygonCoords = [
-
-            @foreach($area['coordinates'] as $coords)
-            { lat: {{$coords[1]}}, lng: {{$coords[0]}} },
-            @endforeach
-        ];
-
-        let zonePolygon = new google.maps.Polygon({
-            paths: polygonCoords,
-            strokeColor: "#050df2",
-            strokeOpacity: 0.8,
-            strokeWeight: 2,
-            fillOpacity: 0,
-        });
-
-        zonePolygon.setMap(map);
-
-        zonePolygon.getPaths().forEach(function(path) {
-            path.forEach(function(latlng) {
-                bounds.extend(latlng);
-                map.fitBounds(bounds);
-            });
-        });
-
-
-        drawingManager = new google.maps.drawing.DrawingManager({
-            drawingMode: google.maps.drawing.OverlayType.POLYGON,
-            drawingControl: true,
-            drawingControlOptions: {
-            position: google.maps.ControlPosition.TOP_CENTER,
-            drawingModes: [google.maps.drawing.OverlayType.POLYGON]
-            },
-            polygonOptions: {
-            editable: true
-            }
-        });
-        drawingManager.setMap(map);
-
-        google.maps.event.addListener(drawingManager, "overlaycomplete", function(event) {
-            let newShape = event.overlay;
-            newShape.type = event.type;
-        });
-
-        google.maps.event.addListener(drawingManager, "overlaycomplete", function(event) {
-            if(lastpolygon)
-                {
-                    lastpolygon.setMap(null);
-                }
-                $('#coordinates').val(event.overlay.getPath().getArray());
-                lastpolygon = event.overlay;
-                auto_grow();
-        });
-        const resetDiv = document.createElement("div");
-        resetMap(resetDiv, lastpolygon);
-        map.controls[google.maps.ControlPosition.TOP_CENTER].push(resetDiv);
-
-        // Create the search box and link it to the UI element.
-        const input = document.getElementById("pac-input");
-            const searchBox = new google.maps.places.SearchBox(input);
-            map.controls[google.maps.ControlPosition.TOP_CENTER].push(input);
-            // Bias the SearchBox results towards current map's viewport.
-            map.addListener("bounds_changed", () => {
-                searchBox.setBounds(map.getBounds());
-            });
-            let markers = [];
-            // Listen for the event fired when the user selects a prediction and retrieve
-            // more details for that place.
-            searchBox.addListener("places_changed", () => {
-                const places = searchBox.getPlaces();
-
-                if (places.length == 0) {
-                return;
-                }
-                // Clear out the old markers.
-                markers.forEach((marker) => {
-                marker.setMap(null);
-                });
-                markers = [];
-                // For each place, get the icon, name and location.
-                const bounds = new google.maps.LatLngBounds();
-                places.forEach((place) => {
-                if (!place.geometry || !place.geometry.location) {
-                    console.log("Returned place contains no geometry");
-                    return;
-                }
-                const icon = {
-                    url: place.icon,
-                    size: new google.maps.Size(71, 71),
-                    origin: new google.maps.Point(0, 0),
-                    anchor: new google.maps.Point(17, 34),
-                    scaledSize: new google.maps.Size(25, 25),
-                };
-                // Create a marker for each place.
-                markers.push(
-                    new google.maps.Marker({
-                    map,
-                    icon,
-                    title: place.name,
-                    position: place.geometry.location,
-                    })
-                );
-
-                if (place.geometry.viewport) {
-                    // Only geocodes have viewport.
-                    bounds.union(place.geometry.viewport);
+    /**
+     * Normalize raw coordinate structures (arrays of [lng, lat], nested arrays, or objects with lat/lng)
+     * into an array of {lat, lng} objects usable by Leaflet.
+     */
+    function normalizeCoordinates(rawCoords) {
+        const normalized = [];
+        const walk = (value) => {
+            if (Array.isArray(value)) {
+                if (value.length === 2 && Number.isFinite(Number(value[0])) && Number.isFinite(Number(value[1]))) {
+                    normalized.push({ lat: Number(value[1]), lng: Number(value[0]) });
                 } else {
-                    bounds.extend(place.geometry.location);
+                    value.forEach((child) => walk(child));
                 }
-                });
-                map.fitBounds(bounds);
-            });
+                return;
+            }
+
+            if (value && typeof value === 'object' && Number.isFinite(Number(value.lat)) && Number.isFinite(Number(value.lng))) {
+                normalized.push({ lat: Number(value.lat), lng: Number(value.lng) });
+            }
+        };
+
+        walk(rawCoords);
+        return normalized;
     }
-    google.maps.event.addDomListener(window, 'load', initialize);
+
+    /**
+     * Format an array of Leaflet latlngs into the original coordinate string
+     * "(lat, lng),(lat, lng)" expected by the backend.
+     */
+    function formatCoordinates(latLngs) {
+        if (!Array.isArray(latLngs) || !latLngs.length) {
+            return '';
+        }
+        const coords = latLngs.map((point) => `(${point.lat}, ${point.lng})`);
+        return coords.join(',');
+    }
+
+    function initializeLeaflet() {
+        const center = {
+            lat: {{trim(explode(' ',$zone->center)[1], 'POINT()')}},
+            lng: {{trim(explode(' ',$zone->center)[0], 'POINT()')}}
+        };
+
+        map = AppMap.createMap('map-canvas', {
+            center: center,
+            zoom: 13
+        });
+
+        drawContext = AppMap.enablePolygonDrawing(map);
+
+        const polygonCoords = @json($area['coordinates']);
+        const normalizedPolygonCoords = normalizeCoordinates(polygonCoords);
+
+        if (normalizedPolygonCoords.length) {
+            const polygon = AppMap.addPolygon(map, normalizedPolygonCoords, {
+                color: '#050df2',
+                weight: 2,
+                opacity: 0.8,
+                fillColor: '#050df2',
+                fillOpacity: 0.1
+            });
+            if (polygon) {
+                drawContext.drawnItems.addLayer(polygon);
+                lastpolygon = polygon;
+                $('#coordinates').val(formatCoordinates(polygon.getLatLngs()[0] || []));
+                auto_grow();
+            }
+        }
+
+        map.on(L.Draw.Event.CREATED, function (event) {
+            if (lastpolygon) {
+                drawContext.drawnItems.removeLayer(lastpolygon);
+            }
+            lastpolygon = event.layer;
+            drawContext.drawnItems.addLayer(event.layer);
+            const latLngs = event.layer.getLatLngs()[0] || [];
+            $('#coordinates').val(formatCoordinates(latLngs));
+            auto_grow();
+        });
+
+        map.on(L.Draw.Event.EDITED, function (event) {
+            event.layers.eachLayer(function (layer) {
+                const latLngs = layer.getLatLngs()[0] || [];
+                $('#coordinates').val(formatCoordinates(latLngs));
+                auto_grow();
+            });
+        });
+    }
 
     function set_all_zones()
     {
@@ -333,31 +269,47 @@
             url: '{{route('admin.zone.zoneCoordinates')}}/{{$zone->id}}',
             dataType: 'json',
             success: function (data) {
-
-                console.log(data);
+                polygons = [];
                 for(let i=0; i<data.length;i++)
                 {
-                    polygons.push(new google.maps.Polygon({
-                        paths: data[i],
-                        strokeColor: "#FF0000",
-                        strokeOpacity: 0.8,
-                        strokeWeight: 2,
-                        fillColor: "#FF0000",
-                        fillOpacity: 0.1,
-                    }));
-                    polygons[i].setMap(map);
+                    const zonePoints = Array.isArray(data[i]) ? data[i] : [];
+                    const coords = normalizeCoordinates(zonePoints);
+
+                    const polygon = AppMap.addPolygon(map, coords, {
+                        color: '#FF0000',
+                        weight: 2,
+                        opacity: 0.8,
+                        fillColor: '#FF0000',
+                        fillOpacity: 0.1
+                    }, false);
+                    if (polygon) {
+                        polygons.push(polygon);
+                    }
+                }
+                if (polygons.length) {
+                    const allPoints = polygons
+                        .map((poly) => AppMap.layerToCoordinateArray(poly))
+                        .flat()
+                        .map((pair) => ({ lat: pair[1], lng: pair[0] }))
+                        .filter((point) => Number.isFinite(point.lat) && Number.isFinite(point.lng));
+                    AppMap.fitToCoordinates(map, allPoints);
                 }
 
             },
         });
     }
     $(document).on('ready', function(){
+        initializeLeaflet();
         set_all_zones();
     });
 
-
     $('#reset_btn').click(function(){
-        location.reload(true);
+        if (lastpolygon && drawContext) {
+            drawContext.drawnItems.removeLayer(lastpolygon);
+            lastpolygon = null;
+        }
+        $('#coordinates').val('');
+        auto_grow();
     })
     $(document).on('ready', function() {
 
