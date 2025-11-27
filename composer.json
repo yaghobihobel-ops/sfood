@@ -28,6 +28,7 @@
         "madnest/madzipper": "*",
         "matanyadaev/laravel-eloquent-spatial": "^4.5",
         "mercadopago/dx-php": "^2.4",
+        "morilog/jalali": "^3.4",
         "mpdf/mpdf": "^8.1",
         "nwidart/laravel-modules": "*",
         "openai-php/laravel": "^0.17",
