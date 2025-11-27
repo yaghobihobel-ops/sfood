@@ -38,7 +38,8 @@
         "simplesoftwareio/simple-qrcode": "^4",
         "stripe/stripe-php": "^10.10",
         "twilio/sdk": "^6.39",
-        "xendit/xendit-php": "^2.19"
+        "xendit/xendit-php": "^2.19",
+        "morilog/jalali": "^3.2"
     },
 
     "require-dev": {
@@ -67,7 +68,8 @@
             "app/CentralLogics/FileManagerLogic.php",
             "app/Library/Constants.php",
             "app/Library/Constant.php",
-            "app/Library/Responses.php"
+            "app/Library/Responses.php",
+            "app/Services/Jalali/JalaliDateService.php"
 
         ],
         "psr-4": {

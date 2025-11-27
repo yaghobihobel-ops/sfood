@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Builder;
+use App\Services\Jalali\JalaliDateService;
 
 class Advertisement extends Model
 {
@@ -66,7 +67,7 @@ class Advertisement extends Model
     }
     public function getActiveAttribute(){
 
-    $today = date('Y-m-d');
+    $today = JalaliDateService::now()->format('Y-m-d');
 
     $todayDate = new DateTime($today);
     $startDate = new DateTime($this->start_date);
@@ -107,15 +108,15 @@ class Advertisement extends Model
 
     public function scopeValid($query)
     {
-        return $query->where('status','approved')->whereDate('end_date', '>=', date('Y-m-d'))->whereDate('start_date', '<=', date('Y-m-d'));
+        return $query->where('status','approved')->whereDate('end_date', '>=', JalaliDateService::now()->format('Y-m-d'))->whereDate('start_date', '<=', JalaliDateService::now()->format('Y-m-d'));
     }
     public function scopeApproved($query)
     {
-        return $query->where('status','approved')->whereDate('end_date', '>=', date('Y-m-d'))->whereDate('start_date', '>', date('Y-m-d'));
+        return $query->where('status','approved')->whereDate('end_date', '>=', JalaliDateService::now()->format('Y-m-d'))->whereDate('start_date', '>', JalaliDateService::now()->format('Y-m-d'));
     }
     public function scopeExpired($query)
     {
-        return $query->where('status','approved')->whereDate('end_date', '<', date('Y-m-d'));
+        return $query->where('status','approved')->whereDate('end_date', '<', JalaliDateService::now()->format('Y-m-d'));
     }
 
     public function restaurant()

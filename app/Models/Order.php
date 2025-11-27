@@ -9,6 +9,7 @@ use App\Scopes\ZoneScope;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use App\Traits\ReportFilter;
 use Modules\TaxModule\Entities\OrderTax;
+use App\Services\Jalali\JalaliDateService;
 
 class Order extends Model
 {
@@ -30,6 +31,7 @@ class Order extends Model
         'processing_time' => 'integer',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
+        'schedule_at' => 'datetime',
         'dm_tips'=>'float',
         'vehicle_id' => 'integer',
         'quantity' => 'integer',
@@ -265,7 +267,17 @@ class Order extends Model
 
     public function getCreatedAtAttribute($value)
     {
-        return date('Y-m-d H:i:s',strtotime($value));
+        return Helpers::jalali_time_date_format($value);
+    }
+
+    public function getUpdatedAtAttribute($value)
+    {
+        return Helpers::jalali_time_date_format($value);
+    }
+
+    public function getScheduleAtAttribute($value)
+    {
+        return Helpers::jalali_time_date_format($value);
     }
 
     protected static function booted()
@@ -355,7 +367,7 @@ class Order extends Model
     public static function scopeApplyDateFilterSchedule($query, $filter, $from = null, $to = null)
     {
         return $query->when(isset($from) && isset($to)  && $filter == 'custom', function ($query) use ($from, $to) {
-            return $query->whereBetween('schedule_at', [$from . " 00:00:00", $to . " 23:59:59"]);
+            return $query->whereBetween('schedule_at', [Helpers::to_gregorian($from), Helpers::to_gregorian($to)]);
         })
         ->when($filter == 'this_year', function ($query) {
             return $query->whereYear('schedule_at', now()->format('Y'));
@@ -364,7 +376,7 @@ class Order extends Model
             return $query->whereMonth('schedule_at', now()->format('m'))->whereYear('schedule_at', now()->format('Y'));
         })
         ->when($filter == 'previous_year', function ($query) {
-            return $query->whereYear('schedule_at', date('Y') - 1);
+            return $query->whereYear('schedule_at', JalaliDateService::now()->subYear()->format('Y'));
         })
         ->when($filter == 'this_week', function ($query) {
             return $query->whereBetween('schedule_at', [now()->startOfWeek()->format('Y-m-d H:i:s'), now()->endOfWeek()->format('Y-m-d H:i:s')]);

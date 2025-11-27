@@ -9,6 +9,7 @@ use Illuminate\Notifications\Notifiable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Support\Facades\DB;
+use App\Services\Jalali\JalaliDateService;
 
 class Vendor extends Authenticatable
 {
@@ -57,7 +58,7 @@ class Vendor extends Authenticatable
 
     public function this_month_earning()
     {
-        return $this->hasMany(OrderTransaction::class)->whereMonth('created_at', date('m'))->whereYear('created_at', date('Y'));
+        return $this->hasMany(OrderTransaction::class)->whereMonth('created_at', JalaliDateService::now()->format('m'))->whereYear('created_at', JalaliDateService::now()->format('Y'));
     }
 
     public function todaysorders()
@@ -77,7 +78,7 @@ class Vendor extends Authenticatable
     {
         return $this->hasManyThrough(Order::class, Restaurant::class)
         ->whereIn('orders.order_status', ['delivered','refund_requested','refund_request_canceled','payment_failed','canceled'])
-        ->whereMonth('orders.created_at', date('m'))->whereYear('orders.created_at', date('Y'));
+        ->whereMonth('orders.created_at', JalaliDateService::now()->format('m'))->whereYear('orders.created_at', JalaliDateService::now()->format('Y'));
     }
 
     public function userinfo()

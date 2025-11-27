@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
+use App\Services\Jalali\JalaliDateService;
 
 class Campaign extends Model
 {
@@ -70,12 +71,12 @@ class Campaign extends Model
 
     public function getStartTimeAttribute($value)
     {
-        return $value?date('H:i',strtotime($value)):$value;
+        return $value?JalaliDateService::toJalali($value, 'H:i'):$value;
     }
 
     public function getEndTimeAttribute($value)
     {
-        return $value?date('H:i',strtotime($value)):$value;
+        return $value?JalaliDateService::toJalali($value, 'H:i'):$value;
     }
     public function restaurants()
     {
@@ -91,13 +92,13 @@ class Campaign extends Model
     public function scopeRunning($query)
     {
         return $query->where(function($q){
-                $q->whereDate('end_date', '>=', date('Y-m-d'))->orWhereNull('end_date');
+                $q->whereDate('end_date', '>=', JalaliDateService::now()->format('Y-m-d'))->orWhereNull('end_date');
             })->where(function($q){
-                $q->whereDate('start_date', '<=', date('Y-m-d'))->orWhereNull('start_date');
+                $q->whereDate('start_date', '<=', JalaliDateService::now()->format('Y-m-d'))->orWhereNull('start_date');
             })->where(function($q){
-                $q->whereTime('start_time', '<=', date('H:i:s'))->orWhereNull('start_time');
+                $q->whereTime('start_time', '<=', JalaliDateService::now()->format('H:i:s'))->orWhereNull('start_time');
             })->where(function($q){
-                $q->whereTime('end_time', '>=', date('H:i:s'))->orWhereNull('end_time');
+                $q->whereTime('end_time', '>=', JalaliDateService::now()->format('H:i:s'))->orWhereNull('end_time');
             });
     }
 

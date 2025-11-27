@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use App\Services\Jalali\JalaliDateService;
 
 class UserNotification extends Model
 {
@@ -16,6 +17,6 @@ class UserNotification extends Model
 
     public function getCreatedAtAttribute($value)
     {
-        return date('Y-m-d H:i:s',strtotime($value));
+        return JalaliDateService::toJalali($value, 'Y-m-d H:i:s');
     }
 }

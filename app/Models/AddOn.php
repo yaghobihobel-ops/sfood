@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Builder;
 use App\CentralLogics\Helpers;
 use Modules\TaxModule\Entities\Taxable;
 use Razorpay\Api\Addon as ApiAddon;
+use App\Services\Jalali\JalaliDateService;
 
 class AddOn extends Model
 {
@@ -75,7 +76,7 @@ class AddOn extends Model
     {
         parent::boot();
         static::retrieved(function ($addon) {
-            $current_date = date('Y-m-d');
+            $current_date = JalaliDateService::now()->format('Y-m-d');
             $check_daily_stock_on= Helpers::getSettingsDataFromConfig('check_daily_stock_on');
 
             if(!$check_daily_stock_on){

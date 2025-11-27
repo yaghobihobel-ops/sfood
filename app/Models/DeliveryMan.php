@@ -8,6 +8,7 @@ use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 use App\Scopes\ZoneScope;
+use App\Services\Jalali\JalaliDateService;
 
 class DeliveryMan extends Authenticatable
 {
@@ -81,7 +82,7 @@ class DeliveryMan extends Authenticatable
 
     public function this_month_earning()
     {
-        return $this->hasMany(OrderTransaction::class)->whereMonth('created_at', date('m'))->whereYear('created_at', date('Y'));
+        return $this->hasMany(OrderTransaction::class)->whereMonth('created_at', JalaliDateService::now()->format('m'))->whereYear('created_at', JalaliDateService::now()->format('Y'));
     }
 
     public function todaysorders()
@@ -169,7 +170,7 @@ class DeliveryMan extends Authenticatable
                 : []);
 
         if ($value) {
-            foreach ($value as $group => $items) { // এখানে $items হলো array of documents
+            foreach ($value as $group => $items) { // 여기서 $items는 문서 배열입니다
                 if (is_array($items)) {
                     foreach ($items as $item) {
                         $file = $item['file'] ?? null;

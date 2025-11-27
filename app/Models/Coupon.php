@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Scopes\RestaurantScope;
 use Illuminate\Database\Eloquent\Model;
+use App\Services\Jalali\JalaliDateService;
 
 class Coupon extends Model
 {
@@ -24,7 +25,7 @@ class Coupon extends Model
     }
     public function scopeValid($query)
     {
-        return $query->whereDate('expire_date', '>=', date('Y-m-d'))->whereDate('start_date', '<=', date('Y-m-d'));
+        return $query->whereDate('expire_date', '>=', JalaliDateService::now()->format('Y-m-d'))->whereDate('start_date', '<=', JalaliDateService::now()->format('Y-m-d'));
     }
 
     public function restaurant()
